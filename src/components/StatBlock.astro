@@ -30,6 +30,7 @@ const { stats } = Astro.props;
     padding: 1.1rem 0.75rem;
     border-right: 1px solid var(--line-soft);
     text-align: center;
+    min-width: 0;
   }
   .stat:last-child { border-right: 0; }
   .v {
@@ -37,9 +38,10 @@ const { stats } = Astro.props;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     font-size: 1.75rem;
-    line-height: 1;
+    line-height: 1.15;
     color: var(--text);
     white-space: nowrap;
+    max-width: 100%;
   }
   .v.gold { color: var(--gold); }
   .v.mint { color: var(--mint); }
@@ -50,5 +52,21 @@ const { stats } = Astro.props;
     letter-spacing: 0.13em;
     text-transform: uppercase;
     color: var(--text-dim);
+  }
+
+  /* Long text values (manager names, score lines on season pages) don't fit
+     a narrow mobile column at the desktop font size/nowrap — let them wrap
+     and shrink instead of overflowing into neighboring columns. Short
+     numeric stats (titles, records, percentages) stay single-line and are
+     comfortably smaller than their column at this size, so this is a no-op
+     for them. */
+  @media (max-width: 520px) {
+    .stat { padding: 0.85rem 0.4rem; }
+    .v {
+      font-size: clamp(1rem, 5.6vw, 1.75rem);
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
   }
 </style>

@@ -1,0 +1,232 @@
+/* Real-world NFL career leaders by position, bounded to the 2002-2025 seasons
+   — the span of MFFL's existence (2026 draft only just happened, so 2025 is
+   the last completed season). This is trivia/reference content, NOT derived
+   from the league archive and NOT tied to who any MFFL manager drafted.
+   Intentionally separate from league.ts, same pattern as hallOfFame.ts.
+
+   THE TOP 10 (TOP 5 FOR DEFENSE) IN EACH TABLE ARE RANKED BY TOTAL ESTIMATED
+   FANTASY POINTS, not by any single raw counting stat. This matters: a
+   high-volume pass-catcher or dual-threat player who doesn't lead a raw
+   yardage column can still out-score everyone once receptions and rushing
+   are folded in. Two players who only cracked these lists because of that:
+   Christian McCaffrey (RB) and Russell Wilson (QB) — neither leads their
+   position in yardage over 2002-2025, but both rank top-10 in estimated
+   fantasy points once full-PPR receiving and rushing are counted.
+
+   Sourced 2026-08-31 via StatMuse (official NFL play-by-play data),
+   cross-checked against Pro-Football-Reference career spans for players
+   whose careers start before 2002 or continue past 2025. Regular season
+   only (playoffs excluded). Where a player's real career extends outside
+   the window, only the portion played within 2002-2025 is counted.
+
+   "Est. Fantasy Pts" uses MFFL's CURRENT (2026) scoring settings, pulled
+   directly from the league's live Scoring & Settings page, applied
+   uniformly across the whole 2002-2025 window at Marc's explicit direction
+   — even though MFFL's real settings have changed over the league's
+   history:
+     Passing:   1 pt / 25 yds, 6 pts / TD, -2 pts / INT
+     Rushing:   1 pt / 10 yds, 6 pts / TD
+     Receiving: 1 pt / 10 yds, 6 pts / TD, 1 pt / reception (full PPR)
+     K:         3 pts / FG made (see kicker note below), 1 pt / XP made
+     DEF:       1 pt / sack, 2 pts / INT, 2 pts / fumble recovery,
+                6 pts / defensive-or-return TD
+
+   Left out for lack of per-game public data at the career-total level
+   (all real MFFL scoring categories, just not computable from aggregate
+   career stats):
+     - The +3 yardage bonus at 300 pass / 100 rush / 100 rec yards in a
+       single game (needs game logs, not season/career totals).
+     - QB sacks taken (-1), fumbles lost (-2), 2-point conversions (+2).
+     - Kicker distance tiers: MFFL pays 3 pts for 0-39 yd field goals, 4 for
+       40-49, and 5 for 50+. Without a made-FG distance breakdown, every
+       field goal below is valued at 3 — the league's most common tier —
+       so kickers with a lot of long makes are undercounted here. Checked
+       and ruled out several other career-FG leaders (Jason Hanson, Harrison
+       Butker) — none approach the current top 10 by career points.
+     - Defense: points-allowed bands, safety, blocked kick, and the
+       distinction between a return TD and a takeaway TD are all part of
+       real MFFL DEF scoring but aren't reflected below; sacks/INT/fumble
+       recovery/TD (the categories we do have) match the league's real
+       per-category values exactly. The New England Patriots (2496 est.
+       pts) came within 2 points of cracking the top 5 (Rams, #4, sit at
+       2498) — essentially a statistical tie given the precision of the
+       inputs here; the Chicago Bears (2458) were also checked and don't
+       threaten the cutoff.
+
+   Near-misses worth noting: at WR, Julio Jones holds the #10 spot at 2680.3
+   est. pts, with Keenan Allen (2680.1) and Antonio Brown (2655.1) close
+   enough behind that the order among these three should be read as a
+   near-tie rather than a confident ranking, given the precision of
+   publicly available aggregate stats. */
+
+export interface QbLeader {
+  rank: number;
+  name: string;
+  passYds: number;
+  passTd: number;
+  rushYds: number;
+  rushTd: number;
+  ints: number;
+  fantasyPts: number;
+}
+
+export interface RbLeader {
+  rank: number;
+  name: string;
+  rushYds: number;
+  rushTd: number;
+  rec: number;
+  recYds: number;
+  totalTd: number;
+  fantasyPts: number;
+}
+
+export interface ReceiverLeader {
+  rank: number;
+  name: string;
+  rec: number;
+  recYds: number;
+  recTd: number;
+  ypr: number;
+  fantasyPts: number;
+}
+
+export interface KLeader {
+  rank: number;
+  name: string;
+  fgMade: number;
+  fgAtt: number;
+  fgPct: number;
+  xpMade: number;
+  points: number;
+  fantasyPts: number;
+}
+
+export interface DefLeader {
+  rank: number;
+  team: string;
+  sacks: number;
+  ints: number;
+  fumbleRec: number;
+  defTd: number;
+  fantasyPts: number;
+}
+
+export const eraQbLeaders: QbLeader[] = [
+  { rank: 1, name: "Tom Brady", passYds: 86365, passTd: 631, rushYds: 1080, rushTd: 28, ints: 200, fantasyPts: 7116.6 },
+  { rank: 2, name: "Drew Brees", passYds: 80137, passTd: 570, rushYds: 734, rushTd: 25, ints: 243, fantasyPts: 6362.9 },
+  { rank: 3, name: "Aaron Rodgers", passYds: 66274, passTd: 527, rushYds: 3634, rushTd: 36, ints: 123, fantasyPts: 6146.4 },
+  { rank: 4, name: "Matthew Stafford", passYds: 64516, passTd: 423, rushYds: 1357, rushTd: 15, ints: 196, fantasyPts: 4952.3 },
+  { rank: 5, name: "Ben Roethlisberger", passYds: 64088, passTd: 418, rushYds: 1373, rushTd: 20, ints: 211, fantasyPts: 4906.8 },
+  { rank: 6, name: "Philip Rivers", passYds: 63984, passTd: 425, rushYds: 600, rushTd: 3, ints: 212, fantasyPts: 4763.4 },
+  { rank: 7, name: "Matt Ryan", passYds: 62792, passTd: 381, rushYds: 1539, rushTd: 13, ints: 183, fantasyPts: 4663.6 },
+  { rank: 8, name: "Peyton Manning", passYds: 55522, passTd: 428, rushYds: 259, rushTd: 11, ints: 170, fantasyPts: 4540.8 },
+  { rank: 9, name: "Russell Wilson", passYds: 46966, passTd: 353, rushYds: 5568, rushTd: 31, ints: 114, fantasyPts: 4511.4 },
+  { rank: 10, name: "Eli Manning", passYds: 57023, passTd: 366, rushYds: 567, rushTd: 7, ints: 244, fantasyPts: 4087.6 },
+];
+
+export const eraRbLeaders: RbLeader[] = [
+  { rank: 1, name: "LaDainian Tomlinson", rushYds: 12448, rushTd: 135, rec: 565, recYds: 4405, totalTd: 152, fantasyPts: 3162.3 },
+  { rank: 2, name: "Frank Gore", rushYds: 16000, rushTd: 81, rec: 484, recYds: 3985, totalTd: 99, fantasyPts: 3076.5 },
+  { rank: 3, name: "Adrian Peterson", rushYds: 14918, rushTd: 120, rec: 305, recYds: 2474, totalTd: 126, fantasyPts: 2800.2 },
+  { rank: 4, name: "LeSean McCoy", rushYds: 11102, rushTd: 73, rec: 518, recYds: 3898, totalTd: 89, fantasyPts: 2552.0 },
+  { rank: 5, name: "Christian McCaffrey", rushYds: 7589, rushTd: 62, rec: 626, recYds: 5390, totalTd: 98, fantasyPts: 2511.9 },
+  { rank: 6, name: "Matt Forte", rushYds: 9796, rushTd: 54, rec: 554, recYds: 4672, totalTd: 75, fantasyPts: 2450.8 },
+  { rank: 7, name: "Steven Jackson", rushYds: 11438, rushTd: 69, rec: 461, recYds: 3683, totalTd: 78, fantasyPts: 2441.1 },
+  { rank: 8, name: "Derrick Henry", rushYds: 13018, rushTd: 122, rec: 189, recYds: 1801, totalTd: 127, fantasyPts: 2432.9 },
+  { rank: 9, name: "Marshawn Lynch", rushYds: 10413, rushTd: 85, rec: 287, recYds: 2214, totalTd: 94, fantasyPts: 2113.7 },
+  { rank: 10, name: "Clinton Portis", rushYds: 9923, rushTd: 75, rec: 247, recYds: 2018, totalTd: 80, fantasyPts: 1921.1 },
+];
+
+export const eraWrLeaders: ReceiverLeader[] = [
+  { rank: 1, name: "Larry Fitzgerald", rec: 1432, recYds: 17492, recTd: 121, ypr: 12.22, fantasyPts: 3907.2 },
+  { rank: 2, name: "Davante Adams", rec: 1017, recYds: 12633, recTd: 117, ypr: 12.42, fantasyPts: 2982.3 },
+  { rank: 3, name: "Steve Smith Sr.", rec: 1021, recYds: 14577, recTd: 81, ypr: 14.28, fantasyPts: 2964.7 },
+  { rank: 4, name: "Anquan Boldin", rec: 1076, recYds: 13779, recTd: 82, ypr: 12.81, fantasyPts: 2945.9 },
+  { rank: 5, name: "Reggie Wayne", rec: 1043, recYds: 14000, recTd: 82, ypr: 13.42, fantasyPts: 2935.0 },
+  { rank: 6, name: "Andre Johnson", rec: 1062, recYds: 14185, recTd: 70, ypr: 13.36, fantasyPts: 2900.5 },
+  { rank: 7, name: "DeAndre Hopkins", rec: 1006, recYds: 13295, recTd: 85, ypr: 13.22, fantasyPts: 2845.5 },
+  { rank: 8, name: "Mike Evans", rec: 866, recYds: 13052, recTd: 108, ypr: 15.07, fantasyPts: 2819.2 },
+  { rank: 9, name: "Brandon Marshall", rec: 970, recYds: 12351, recTd: 83, ypr: 12.73, fantasyPts: 2703.1 },
+  { rank: 10, name: "Julio Jones", rec: 914, recYds: 13703, recTd: 66, ypr: 14.99, fantasyPts: 2680.3 },
+];
+
+export const eraTeLeaders: ReceiverLeader[] = [
+  { rank: 1, name: "Jason Witten", rec: 1228, recYds: 13046, recTd: 74, ypr: 10.62, fantasyPts: 2976.6 },
+  { rank: 2, name: "Travis Kelce", rec: 1080, recYds: 13002, recTd: 82, ypr: 12.04, fantasyPts: 2872.2 },
+  { rank: 3, name: "Antonio Gates", rec: 955, recYds: 11841, recTd: 116, ypr: 12.40, fantasyPts: 2835.1 },
+  { rank: 4, name: "Tony Gonzalez", rec: 991, recYds: 11169, recTd: 81, ypr: 11.27, fantasyPts: 2593.9 },
+  { rank: 5, name: "Jimmy Graham", rec: 719, recYds: 8545, recTd: 89, ypr: 11.88, fantasyPts: 2107.5 },
+  { rank: 6, name: "Rob Gronkowski", rec: 621, recYds: 9286, recTd: 92, ypr: 14.95, fantasyPts: 2101.6 },
+  { rank: 7, name: "Zach Ertz", rec: 825, recYds: 8592, recTd: 57, ypr: 10.41, fantasyPts: 2026.2 },
+  { rank: 8, name: "Greg Olsen", rec: 742, recYds: 8683, recTd: 60, ypr: 11.70, fantasyPts: 1970.3 },
+  { rank: 9, name: "Vernon Davis", rec: 583, recYds: 7562, recTd: 63, ypr: 12.97, fantasyPts: 1717.2 },
+  { rank: 10, name: "George Kittle", rec: 595, recYds: 8008, recTd: 52, ypr: 13.46, fantasyPts: 1707.8 },
+];
+
+export const eraKLeaders: KLeader[] = [
+  { rank: 1, name: "Adam Vinatieri", fgMade: 439, fgAtt: 516, fgPct: 85.1, xpMade: 668, points: 1985, fantasyPts: 1985 },
+  { rank: 2, name: "Robbie Gould", fgMade: 447, fgAtt: 517, fgPct: 86.5, xpMade: 620, points: 1961, fantasyPts: 1961 },
+  { rank: 3, name: "Mason Crosby", fgMade: 400, fgAtt: 492, fgPct: 81.3, xpMade: 739, points: 1939, fantasyPts: 1939 },
+  { rank: 4, name: "Matt Prater", fgMade: 425, fgAtt: 507, fgPct: 83.8, xpMade: 633, points: 1908, fantasyPts: 1908 },
+  { rank: 5, name: "Stephen Gostkowski", fgMade: 392, fgAtt: 454, fgPct: 86.3, xpMade: 699, points: 1875, fantasyPts: 1875 },
+  { rank: 6, name: "Nick Folk", fgMade: 431, fgAtt: 507, fgPct: 85.0, xpMade: 533, points: 1826, fantasyPts: 1826 },
+  { rank: 7, name: "Justin Tucker", fgMade: 417, fgAtt: 468, fgPct: 89.1, xpMade: 524, points: 1775, fantasyPts: 1775 },
+  { rank: 8, name: "Matt Bryant", fgMade: 397, fgAtt: 464, fgPct: 85.6, xpMade: 567, points: 1758, fantasyPts: 1758 },
+  { rank: 9, name: "Sebastian Janikowski", fgMade: 391, fgAtt: 482, fgPct: 81.1, xpMade: 517, points: 1690, fantasyPts: 1690 },
+  { rank: 10, name: "Phil Dawson", fgMade: 397, fgAtt: 472, fgPct: 84.1, xpMade: 449, points: 1640, fantasyPts: 1640 },
+];
+
+export const eraDefLeaders: DefLeader[] = [
+  { rank: 1, team: "Philadelphia Eagles", sacks: 1014, ints: 351, fumbleRec: 260, defTd: 67, fantasyPts: 2638 },
+  { rank: 2, team: "Pittsburgh Steelers", sacks: 1067, ints: 366, fumbleRec: 260, defTd: 51, fantasyPts: 2625 },
+  { rank: 3, team: "Minnesota Vikings", sacks: 977, ints: 355, fumbleRec: 252, defTd: 60, fantasyPts: 2551 },
+  { rank: 4, team: "Los Angeles / St. Louis Rams", sacks: 980, ints: 340, fumbleRec: 254, defTd: 55, fantasyPts: 2498 },
+  { rank: 5, team: "Baltimore Ravens", sacks: 974, ints: 393, fumbleRec: 239, defTd: 30, fantasyPts: 2418 },
+];
+
+export const commas = (n: number): string => Math.round(n).toLocaleString("en-US");
+export const oneDecimal = (n: number): string => n.toFixed(1);
+
+/* ------------------------------------------------------------------ */
+/* career player records — the single-stat leader across all four      */
+/* position tables above, for the Record Book page. Computed (not      */
+/* hardcoded) so it always matches whatever is on the All-Time tab.    */
+/* ------------------------------------------------------------------ */
+
+export interface CareerPlayerRecord {
+  label: string;
+  player: string;
+  value: string;
+  detail: string;
+}
+
+export function careerPlayerRecords(): CareerPlayerRecord[] {
+  const passYds = [...eraQbLeaders].sort((a, b) => b.passYds - a.passYds)[0];
+  const passTd = [...eraQbLeaders].sort((a, b) => b.passTd - a.passTd)[0];
+  const rushYds = [...eraRbLeaders].sort((a, b) => b.rushYds - a.rushYds)[0];
+
+  const receivers = [
+    ...eraRbLeaders.map((p) => ({ name: p.name, rec: p.rec, recYds: p.recYds })),
+    ...eraWrLeaders.map((p) => ({ name: p.name, rec: p.rec, recYds: p.recYds })),
+    ...eraTeLeaders.map((p) => ({ name: p.name, rec: p.rec, recYds: p.recYds })),
+  ];
+  const mostRec = [...receivers].sort((a, b) => b.rec - a.rec)[0];
+  const mostRecYds = [...receivers].sort((a, b) => b.recYds - a.recYds)[0];
+
+  const nonQbTds = [
+    ...eraRbLeaders.map((p) => ({ name: p.name, td: p.totalTd })),
+    ...eraWrLeaders.map((p) => ({ name: p.name, td: p.recTd })),
+    ...eraTeLeaders.map((p) => ({ name: p.name, td: p.recTd })),
+  ];
+  const mostTd = [...nonQbTds].sort((a, b) => b.td - a.td)[0];
+
+  return [
+    { label: "Most Passing Yards", player: passYds.name, value: commas(passYds.passYds), detail: "2002–2025 career" },
+    { label: "Most Passing TDs", player: passTd.name, value: `${passTd.passTd}`, detail: "2002–2025 career" },
+    { label: "Most Rushing Yards", player: rushYds.name, value: commas(rushYds.rushYds), detail: "2002–2025 career" },
+    { label: "Most Receptions", player: mostRec.name, value: commas(mostRec.rec), detail: "2002–2025 career" },
+    { label: "Most Receiving Yards", player: mostRecYds.name, value: commas(mostRecYds.recYds), detail: "2002–2025 career" },
+    { label: "Most TDs (non-QB)", player: mostTd.name, value: `${mostTd.td}`, detail: "2002–2025 career, rushing + receiving" },
+  ];
+}

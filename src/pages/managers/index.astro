@@ -1,0 +1,38 @@
+---
+import Base from "../../layouts/Base.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import { careerRecords, recordLine, pct } from "../../data/league";
+const rows = careerRecords();
+---
+<Base title="Managers">
+  <PageHeader eyebrow="The people" title="Managers" lede="Everyone who has ever run a team in this league." />
+  <div class="grid cols-3">
+    {rows.map((r) => (
+      <a class="card mgr" href={`/managers/${r.slug}`}>
+        {r.photo
+          ? <img class="avatar photo" src={r.photo} alt={r.name} loading="lazy" />
+          : <span class="avatar" aria-hidden="true">{r.name.slice(0, 1)}</span>}
+        <span class="who">
+          <span class="nm">{r.name}</span>
+          <span class="sub dim num">{recordLine(r.wins, r.losses, r.ties)} · {pct(r.winPct)}</span>
+        </span>
+        {r.titles > 0 && <span class="pill gold">{r.titles}×</span>}
+      </a>
+    ))}
+  </div>
+  <style>
+    .mgr { display: flex; align-items: center; gap: 0.9rem; text-decoration: none; }
+    .mgr:hover { border-color: var(--orchid); }
+    .avatar {
+      display: grid; place-items: center;
+      width: 46px; height: 46px; flex: none;
+      border-radius: 50%;
+      background: linear-gradient(150deg, var(--orchid), var(--orchid-dim));
+      color: #1A0B2E; font-family: var(--font-display); font-size: 1.25rem;
+    }
+    .avatar.photo { object-fit: cover; background: none; }
+    .who { display: grid; gap: 0.1rem; flex: 1; }
+    .nm { color: var(--text); font-weight: 600; }
+    .sub { font-size: 0.8125rem; }
+  </style>
+</Base>

@@ -1,0 +1,268 @@
+---
+import "../styles/global.css";
+import { league, isSampleData } from "../data/league";
+
+interface Props { title: string; description?: string }
+const { title, description = `${league.fullName} — every season since ${league.firstSeason}.` } = Astro.props;
+
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const nav = [
+  { href: "/", label: "The Hall" },
+  { href: "/seasons", label: "Seasons" },
+  { href: "/standings", label: "All-Time" },
+  { href: "/records", label: "Record Book" },
+  { href: "/rivalries", label: "Rivalries" },
+  { href: "/managers", label: "Managers" },
+];
+const isActive = (href: string) =>
+  href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · {league.name}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,500;0,600;1,500&family=Pinyon+Script&display=swap"
+    />
+  </head>
+  <body>
+    <div class="trophy-bg" aria-hidden="true"></div>
+    <svg class="arcs" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 1440 900">
+      <defs>
+        <linearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#D473FF" stop-opacity="0" />
+          <stop offset="45%" stop-color="#D473FF" stop-opacity="0.55" />
+          <stop offset="100%" stop-color="#7B2FB8" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d="M-120 700 C 360 420, 900 380, 1560 60" fill="none" stroke="url(#arc)" stroke-width="1.5" />
+      <path d="M-120 820 C 420 540, 980 470, 1560 150" fill="none" stroke="url(#arc)" stroke-width="1" />
+      <path d="M-120 940 C 480 660, 1060 560, 1560 260" fill="none" stroke="url(#arc)" stroke-width="0.75" />
+    </svg>
+
+    {isSampleData && (
+      <div class="sample-banner">
+        <strong>Sample data.</strong> Placeholder seasons so the design can be
+        reviewed — real MFFL history lands once the Yahoo archive is imported.
+      </div>
+    )}
+
+    <header class="masthead">
+      <div class="shell masthead-inner">
+        <a class="wordmark" href="/">
+          <span class="wordmark-mark">{league.name}</span>
+          <span class="wordmark-sub">Hall of Fame</span>
+        </a>
+        <nav aria-label="Main">
+          <ul>
+            {nav.map((item) => (
+              <li>
+                <a href={item.href} class={isActive(item.href) ? "on" : ""}
+                   aria-current={isActive(item.href) ? "page" : undefined}>
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="shell"><slot /></main>
+
+    <footer class="foot">
+      <div class="shell foot-inner">
+        <p class="dim">
+          {league.fullName} · {league.firstSeason}–{league.lastSeason}
+        </p>
+        <a class="btn ghost" href={league.yahooUrl} rel="noopener">
+          This season on Yahoo
+        </a>
+      </div>
+    </footer>
+
+    <div id="photo-lightbox" class="lightbox" hidden>
+      <button type="button" class="lightbox-close" aria-label="Close photo">&times;</button>
+      <img id="photo-lightbox-img" src="" alt="" />
+    </div>
+
+    <style>
+      .masthead {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        border-bottom: 1px solid var(--line);
+        background: rgba(18, 7, 31, 0.86);
+        backdrop-filter: blur(14px);
+      }
+      .masthead-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+        padding-block: 0.9rem;
+      }
+      .wordmark {
+        display: flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        text-decoration: none;
+      }
+      .wordmark-mark {
+        font-family: var(--font-display);
+        font-size: 1.6rem;
+        letter-spacing: 0.03em;
+        color: var(--text);
+        text-transform: uppercase;
+      }
+      .wordmark-sub {
+        font-family: var(--font-script);
+        font-size: 2.15rem;
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--orchid-bright);
+        line-height: 1;
+      }
+      nav ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1.4rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      nav a {
+        display: inline-block;
+        padding: 0.35rem 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        color: var(--text-muted);
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+      }
+      nav a:hover { color: var(--text); }
+      nav a.on { color: var(--text); border-bottom-color: var(--orchid); }
+
+      main { padding-bottom: var(--gap-xl); }
+
+      .foot {
+        position: relative;
+        z-index: 1;
+        border-top: 1px solid var(--line);
+        margin-top: var(--gap-xl);
+        padding-block: var(--gap-lg);
+      }
+      .foot-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--gap);
+        flex-wrap: wrap;
+      }
+      .foot p { margin: 0; font-size: 0.875rem; }
+
+      :global(.photo-trigger) {
+        all: unset;
+        display: block;
+        box-sizing: border-box;
+        cursor: zoom-in;
+        overflow: hidden;
+      }
+      :global(.photo-trigger:focus-visible) {
+        outline: 2px solid var(--orchid);
+        outline-offset: 2px;
+      }
+      :global(.photo-trigger img) {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: inherit;
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1.5rem;
+        background: rgba(10, 4, 18, 0.88);
+        backdrop-filter: blur(10px);
+        cursor: zoom-out;
+      }
+      .lightbox[hidden] { display: none; }
+      .lightbox img {
+        max-width: min(90vw, 620px);
+        max-height: 82vh;
+        border-radius: 20px;
+        border: 2px solid var(--orchid-dim);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+        cursor: default;
+      }
+      .lightbox-close {
+        all: unset;
+        position: absolute;
+        top: 1.25rem;
+        right: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .lightbox-close:hover { background: rgba(255, 255, 255, 0.16); }
+    </style>
+
+    <script>
+      function initPhotoLightbox() {
+        const overlay = document.getElementById("photo-lightbox");
+        const img = document.getElementById("photo-lightbox-img");
+        const closeBtn = overlay?.querySelector(".lightbox-close");
+        if (!overlay || !(img instanceof HTMLImageElement)) return;
+
+        function open(full: string, alt: string) {
+          img.src = full;
+          img.alt = alt || "";
+          overlay.hidden = false;
+          document.body.style.overflow = "hidden";
+        }
+        function close() {
+          overlay.hidden = true;
+          img.src = "";
+          document.body.style.overflow = "";
+        }
+
+        document.addEventListener("click", (e) => {
+          const target = e.target as HTMLElement;
+          const trigger = target.closest(".photo-trigger");
+          if (trigger instanceof HTMLElement) {
+            e.preventDefault();
+            open(trigger.dataset.full ?? "", trigger.dataset.alt ?? "");
+            return;
+          }
+          if (target === overlay) close();
+        });
+        closeBtn?.addEventListener("click", close);
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !overlay.hidden) close();
+        });
+      }
+      initPhotoLightbox();
+    </script>
+  </body>
+</html>

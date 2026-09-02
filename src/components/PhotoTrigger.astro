@@ -1,0 +1,24 @@
+---
+/**
+ * A clickable photo that opens the full-res version in the site-wide
+ * lightbox (markup + JS lives in Base.astro). Sizing/shape is controlled
+ * entirely by the `class` prop, same as a plain <img> would be -
+ * the inner image just fills whatever box that class defines.
+ */
+interface Props {
+  src: string;
+  full: string;
+  alt: string;
+  class?: string;
+}
+const { src, full, alt, class: className } = Astro.props;
+---
+<button
+  type="button"
+  class={`photo-trigger ${className ?? ""}`}
+  data-full={full}
+  data-alt={alt}
+  aria-label={`View full-size photo of ${alt}`}
+>
+  <img src={src} alt={alt} loading="lazy" />
+</button>

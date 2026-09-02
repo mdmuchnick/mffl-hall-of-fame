@@ -1,0 +1,747 @@
+/**
+ * The single seam between the league archive and the website.
+ *
+ * Every page reads from here and nothing else. When the real Yahoo archive
+ * replaces the sample data, only the `raw` import below changes - the derived
+ * statistics and every page keep working untouched.
+ */
+import raw from "./fixtures.json";
+
+export interface Manager {
+  slug: string;
+  name: string;
+  firstSeason: number;
+  active: boolean;
+}
+
+export interface TeamSeason {
+  manager: string;
+  teamName: string;
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  seed: number;
+}
+
+export interface Matchup {
+  week: number;
+  home: string;
+  away: string;
+  homeScore: number;
+  awayScore: number;
+  playoff: boolean;
+  round?: string;
+}
+
+export interface DraftPick {
+  overall: number;
+  round: number;
+  manager: string;
+  player: string;
+  position: string;
+}
+
+export interface Season {
+  year: number;
+  teamCount: number;
+  regularSeasonWeeks: number;
+  teams: TeamSeason[];
+  matchups: Matchup[];
+  champion: string;
+  runnerUp: string;
+  championshipScore: [number, number];
+  draft: DraftPick[];
+}
+
+export const isSampleData: boolean = (raw as any).sample === true;
+export const league = (raw as any).league as {
+  name: string;
+  fullName: string;
+  firstSeason: number;
+  lastSeason: number;
+  yahooUrl: string;
+};
+export const managers = (raw as any).managers as Manager[];
+export const seasons = ((raw as any).seasons as Season[])
+  .slice()
+  .sort((a, b) => b.year - a.year);
+
+const bySlug = new Map(managers.map((m) => [m.slug, m]));
+export const managerName = (slug: string): string =>
+  bySlug.get(slug)?.name ?? slug;
+
+/* ------------------------------------------------------------------ */
+/* career records                                                      */
+/* ------------------------------------------------------------------ */
+
+export interface CareerRecord {
+  slug: string;
+  name: string;
+  seasons: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  titles: number;
+  runnerUps: number;
+  playoffAppearances: number;
+  bestFinish: number;
+  winPct: number;
+  pointsPerGame: number;
+}
+
+export function careerRecords(): CareerRecord[] {
+  const rows = new Map<string, CareerRecord>();
+
+  for (const m of managers) {
+    rows.set(m.slug, {
+      slug: m.slug, name: m.name, seasons: 0,
+      wins: 0, losses: 0, ties: 0,
+      pointsFor: 0, pointsAgainst: 0,
+      titles: 0, runnerUps: 0, playoffAppearances: 0,
+      bestFinish: Number.POSITIVE_INFINITY,
+      winPct: 0, pointsPerGame: 0,
+    });
+  }
+
+  for (const season of seasons) {
+    const playoffTeams = seasonPlayoffTeams(season);
+    for (const team of season.teams) {
+      const row = rows.get(team.manager);
+      if (!row) continue;
+      row.seasons += 1;
+      row.wins += team.wins;
+      row.losses += team.losses;
+      row.ties += team.ties;
+      row.pointsFor += team.pointsFor;
+      row.pointsAgainst += team.pointsAgainst;
+      if (playoffTeams.has(team.manager)) row.playoffAppearances += 1;
+      if (team.seed < row.bestFinish) row.bestFinish = team.seed;
+    }
+    rows.get(season.champion)!.titles += 1;
+    rows.get(season.runnerUp)!.runnerUps += 1;
+  }
+
+  return [...rows.values()]
+    .filter((r) => r.seasons > 0)
+    .map((r) => {
+      const games = r.wins + r.losses + r.ties;
+      return {
+        ...r,
+        pointsFor: round2(r.pointsFor),
+        pointsAgainst: round2(r.pointsAgainst),
+        winPct: games ? (r.wins + r.ties * 0.5) / games : 0,
+        pointsPerGame: games ? round2(r.pointsFor / games) : 0,
+        bestFinish: Number.isFinite(r.bestFinish) ? r.bestFinish : 0,
+      };
+    })
+    .sort((a, b) => b.titles - a.titles || b.winPct - a.winPct);
+}
+
+/* ------------------------------------------------------------------ */
+/* head to head                                                        */
+/* ------------------------------------------------------------------ */
+
+export interface HeadToHead {
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  meetings: number;
+  playoffMeetings: number;
+}
+
+const emptyH2H = (): HeadToHead => ({
+  wins: 0, losses: 0, ties: 0,
+  pointsFor: 0, pointsAgainst: 0,
+  meetings: 0, playoffMeetings: 0,
+});
+
+/** matrix[a][b] is a's record against b. */
+export function headToHeadMatrix(): Record<string, Record<string, HeadToHead>> {
+  const matrix: Record<string, Record<string, HeadToHead>> = {};
+  for (const a of managers) {
+    matrix[a.slug] = {};
+    for (const b of managers) {
+      if (a.slug !== b.slug) matrix[a.slug][b.slug] = emptyH2H();
+    }
+  }
+
+  for (const season of seasons) {
+    for (const m of season.matchups) {
+      const a = matrix[m.home]?.[m.away];
+      const b = matrix[m.away]?.[m.home];
+      if (!a || !b) continue;
+
+      a.meetings += 1; b.meetings += 1;
+      if (m.playoff) { a.playoffMeetings += 1; b.playoffMeetings += 1; }
+      a.pointsFor += m.homeScore; a.pointsAgainst += m.awayScore;
+      b.pointsFor += m.awayScore; b.pointsAgainst += m.homeScore;
+
+      if (m.homeScore > m.awayScore) { a.wins += 1; b.losses += 1; }
+      else if (m.awayScore > m.homeScore) { b.wins += 1; a.losses += 1; }
+      else { a.ties += 1; b.ties += 1; }
+    }
+  }
+
+  for (const a of Object.keys(matrix)) {
+    for (const b of Object.keys(matrix[a])) {
+      matrix[a][b].pointsFor = round2(matrix[a][b].pointsFor);
+      matrix[a][b].pointsAgainst = round2(matrix[a][b].pointsAgainst);
+    }
+  }
+  return matrix;
+}
+
+/* ------------------------------------------------------------------ */
+/* record book                                                         */
+/* ------------------------------------------------------------------ */
+
+export interface RecordEntry {
+  category: string;
+  label: string;
+  value: string;
+  detail: string;
+  year: number;
+  /** Optional override; career-spanning records link to a manager page instead of a season. */
+  href?: string;
+}
+
+export function recordBook(): RecordEntry[] {
+  interface Scored {
+    manager: string; opponent: string; score: number;
+    against: number; year: number; week: number; playoff: boolean;
+  }
+  const all: Scored[] = [];
+  for (const s of seasons) {
+    for (const m of s.matchups) {
+      all.push({ manager: m.home, opponent: m.away, score: m.homeScore,
+        against: m.awayScore, year: s.year, week: m.week, playoff: m.playoff });
+      all.push({ manager: m.away, opponent: m.home, score: m.awayScore,
+        against: m.homeScore, year: s.year, week: m.week, playoff: m.playoff });
+    }
+  }
+  if (all.length === 0) return [];
+
+  const high = [...all].sort((a, b) => b.score - a.score)[0];
+  const low = [...all].sort((a, b) => a.score - b.score)[0];
+  const blowout = [...all].sort(
+    (a, b) => (b.score - b.against) - (a.score - a.against))[0];
+  const closest = [...all]
+    .filter((g) => g.score > g.against)
+    .sort((a, b) => (a.score - a.against) - (b.score - b.against))[0];
+  const heartbreak = [...all]
+    .filter((g) => g.score < g.against)
+    .sort((a, b) => b.score - a.score)[0];
+
+  const seasonPoints = seasons.flatMap((s) =>
+    s.teams.map((t) => ({ ...t, year: s.year })));
+  const bestSeason = [...seasonPoints].sort(
+    (a, b) => b.pointsFor / gamesOf(b) - a.pointsFor / gamesOf(a))[0];
+
+  const streak = longestWinStreak();
+  const current = currentWinStreak();
+  const turnaround = biggestSeasonTurnaround();
+  const career = careerRecords();
+  const anchorYear = seasons[0]?.year ?? 0;
+
+  const totalPointsLeader = [...career].sort((a, b) => b.pointsFor - a.pointsFor)[0];
+  const winPctLeader = [...career]
+    .filter((c) => c.seasons >= 3)
+    .sort((a, b) => b.winPct - a.winPct)[0];
+  const playoffRateLeader = [...career]
+    .filter((c) => c.seasons >= 3)
+    .sort((a, b) => (b.playoffAppearances / b.seasons) - (a.playoffAppearances / a.seasons))[0];
+  const weeklyHigh = weeklyHighScoreLeader();
+  const drought = longestTitleDrought();
+
+  const entries: RecordEntry[] = [
+    { category: "Single-Game Extremes", label: "Highest score, one week", value: fmt(high.score),
+      detail: `${managerName(high.manager)} vs ${managerName(high.opponent)}, week ${high.week}`,
+      year: high.year },
+    { category: "Single-Game Extremes", label: "Lowest score, one week", value: fmt(low.score),
+      detail: `${managerName(low.manager)} vs ${managerName(low.opponent)}, week ${low.week}`,
+      year: low.year },
+    { category: "Single-Game Extremes", label: "Biggest blowout", value: `+${fmt(blowout.score - blowout.against)}`,
+      detail: `${managerName(blowout.manager)} over ${managerName(blowout.opponent)}, ${fmt(blowout.score)}-${fmt(blowout.against)}`,
+      year: blowout.year },
+    { category: "Single-Game Extremes", label: "Closest game", value: fmt(closest.score - closest.against),
+      detail: `${managerName(closest.manager)} over ${managerName(closest.opponent)}, ${fmt(closest.score)}-${fmt(closest.against)}`,
+      year: closest.year },
+    { category: "Single-Game Extremes", label: "Most points in a loss", value: fmt(heartbreak.score),
+      detail: `${managerName(heartbreak.manager)} lost to ${managerName(heartbreak.opponent)} by ${fmt(heartbreak.against - heartbreak.score)}`,
+      year: heartbreak.year },
+    { category: "Season & Streaks", label: "Best scoring season", value: `${fmt(bestSeason.pointsFor / gamesOf(bestSeason))}/wk`,
+      detail: `${managerName(bestSeason.manager)}, ${fmt(bestSeason.pointsFor)} total`,
+      year: bestSeason.year },
+    { category: "Season & Streaks", label: "Longest win streak", value: `${streak.length} games`,
+      detail: `${managerName(streak.manager)}, ${streak.from}`, year: streak.year },
+  ];
+
+  if (current) {
+    entries.push({ category: "Season & Streaks", label: "Longest active win streak", value: `${current.length} games`,
+      detail: `${managerName(current.manager)}, ongoing since ${current.from}`,
+      year: anchorYear, href: `/managers/${current.manager}` });
+  }
+
+  if (turnaround) {
+    const sign = turnaround.delta >= 0 ? "+" : "";
+    entries.push({ category: "Season & Streaks", label: "Biggest single-season turnaround",
+      value: `${sign}${(turnaround.delta * 100).toFixed(0)} pts win%`,
+      detail: `${managerName(turnaround.manager)}, ${recordLine(turnaround.fromWins, turnaround.fromLosses, turnaround.fromTies)} in ${turnaround.fromYear} to ${recordLine(turnaround.toWins, turnaround.toLosses, turnaround.toTies)} in ${turnaround.toYear}`,
+      year: turnaround.toYear });
+  }
+
+  if (totalPointsLeader) {
+    entries.push({ category: "Career Totals", label: "Most points scored, career", value: fmt(totalPointsLeader.pointsFor),
+      detail: `${totalPointsLeader.name}, ${totalPointsLeader.seasons} seasons`,
+      year: anchorYear, href: `/managers/${totalPointsLeader.slug}` });
+  }
+
+  if (winPctLeader) {
+    entries.push({ category: "Career Totals", label: "Best career win percentage", value: pct(winPctLeader.winPct),
+      detail: `${winPctLeader.name}, ${recordLine(winPctLeader.wins, winPctLeader.losses, winPctLeader.ties)}, min. 3 seasons`,
+      year: anchorYear, href: `/managers/${winPctLeader.slug}` });
+  }
+
+  if (playoffRateLeader) {
+    entries.push({ category: "Career Totals", label: "Best playoff efficiency",
+      value: pct(playoffRateLeader.playoffAppearances / playoffRateLeader.seasons),
+      detail: `${playoffRateLeader.name}, ${playoffRateLeader.playoffAppearances} of ${playoffRateLeader.seasons} seasons, min. 3 seasons`,
+      year: anchorYear, href: `/managers/${playoffRateLeader.slug}` });
+  }
+
+  if (weeklyHigh) {
+    entries.push({ category: "Career Totals", label: "Most weeks as league's top scorer", value: `${weeklyHigh.count} weeks`,
+      detail: managerName(weeklyHigh.manager),
+      year: anchorYear, href: `/managers/${weeklyHigh.manager}` });
+  }
+
+  if (drought) {
+    entries.push({ category: "Career Totals", label: "Longest title drought", value: `${drought.length} seasons`,
+      detail: `${managerName(drought.manager)}, ${drought.from}–${drought.to} without a title`,
+      year: drought.to, href: `/managers/${drought.manager}` });
+  }
+
+  entries.push(...draftLotteryRecords());
+  entries.push(...playoffThresholdRecords());
+  entries.push(...championshipMarginRecords());
+
+  return entries;
+}
+
+function gamesOf(t: { wins: number; losses: number; ties: number }): number {
+  return Math.max(1, t.wins + t.losses + t.ties);
+}
+
+function longestWinStreak(): { manager: string; length: number; year: number; from: string } {
+  let best = { manager: managers[0]?.slug ?? "", length: 0, year: 0, from: "" };
+  const chronological = [...seasons].sort((a, b) => a.year - b.year);
+  const running = new Map<string, { len: number; startYear: number; startWeek: number }>();
+
+  for (const s of chronological) {
+    const ordered = [...s.matchups].sort((a, b) => a.week - b.week);
+    for (const m of ordered) {
+      const pairs: [string, boolean][] = [
+        [m.home, m.homeScore > m.awayScore],
+        [m.away, m.awayScore > m.homeScore],
+      ];
+      for (const [slug, won] of pairs) {
+        const cur = running.get(slug) ?? { len: 0, startYear: s.year, startWeek: m.week };
+        if (won) {
+          if (cur.len === 0) { cur.startYear = s.year; cur.startWeek = m.week; }
+          cur.len += 1;
+          if (cur.len > best.length) {
+            best = { manager: slug, length: cur.len, year: s.year,
+              from: `${cur.startYear} week ${cur.startWeek} onward` };
+          }
+        } else {
+          cur.len = 0;
+        }
+        running.set(slug, cur);
+      }
+    }
+  }
+  return best;
+}
+
+/** The win streak each manager is carrying as of the most recent completed game. */
+function currentWinStreak(): { manager: string; length: number; from: string } | null {
+  const chronological = [...seasons].sort((a, b) => a.year - b.year);
+  const running = new Map<string, { len: number; startYear: number; startWeek: number }>();
+
+  for (const s of chronological) {
+    const ordered = [...s.matchups].sort((a, b) => a.week - b.week);
+    for (const m of ordered) {
+      const pairs: [string, boolean][] = [
+        [m.home, m.homeScore > m.awayScore],
+        [m.away, m.awayScore > m.homeScore],
+      ];
+      for (const [slug, won] of pairs) {
+        const cur = running.get(slug) ?? { len: 0, startYear: s.year, startWeek: m.week };
+        if (won) {
+          if (cur.len === 0) { cur.startYear = s.year; cur.startWeek = m.week; }
+          cur.len += 1;
+        } else {
+          cur.len = 0;
+        }
+        running.set(slug, cur);
+      }
+    }
+  }
+
+  let best: { manager: string; length: number; from: string } | null = null;
+  for (const [slug, v] of running) {
+    if (v.len > 0 && (!best || v.len > best.length)) {
+      best = { manager: slug, length: v.len, from: `${v.startYear} week ${v.startWeek}` };
+    }
+  }
+  return best;
+}
+
+/** Largest year-over-year swing in win percentage for the same manager across consecutive seasons. */
+function biggestSeasonTurnaround(): {
+  manager: string; delta: number; fromYear: number; toYear: number;
+  fromWins: number; fromLosses: number; fromTies: number;
+  toWins: number; toLosses: number; toTies: number;
+} | null {
+  const byManager = new Map<string, { year: number; wins: number; losses: number; ties: number }[]>();
+  for (const s of seasons) {
+    for (const t of s.teams) {
+      const arr = byManager.get(t.manager) ?? [];
+      arr.push({ year: s.year, wins: t.wins, losses: t.losses, ties: t.ties });
+      byManager.set(t.manager, arr);
+    }
+  }
+
+  let best: ReturnType<typeof biggestSeasonTurnaround> = null;
+  for (const [slug, list] of byManager) {
+    const sorted = [...list].sort((a, b) => a.year - b.year);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const cur = sorted[i];
+      if (cur.year !== prev.year + 1) continue; // consecutive seasons only
+      const prevGames = prev.wins + prev.losses + prev.ties;
+      const curGames = cur.wins + cur.losses + cur.ties;
+      if (!prevGames || !curGames) continue;
+      const prevPct = (prev.wins + prev.ties * 0.5) / prevGames;
+      const curPct = (cur.wins + cur.ties * 0.5) / curGames;
+      const delta = curPct - prevPct;
+      if (!best || Math.abs(delta) > Math.abs(best.delta)) {
+        best = { manager: slug, delta, fromYear: prev.year, toYear: cur.year,
+          fromWins: prev.wins, fromLosses: prev.losses, fromTies: prev.ties,
+          toWins: cur.wins, toLosses: cur.losses, toTies: cur.ties };
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Managers who actually played in a season's championship (winners) bracket.
+ *
+ * NOT derived from the matchup `playoff` flag: the archive flags every postseason-week
+ * game as playoff:true, including the consolation/placement bracket that non-qualifying
+ * teams play in parallel during weeks 15-17. That made teams who missed the real playoffs
+ * (e.g. an 8-seed in a 6-team bracket) look like playoff qualifiers. Instead this walks the
+ * actual championship bracket reconstructed by championshipBracket() - which is built by
+ * tracing games backward from the known champion/runner-up - and collects every manager
+ * who appears in that tree (byes included). Confirmed against the 2023 season: the real
+ * bracket was seeds 1-6 only, and seed 8 was correctly excluded despite having
+ * playoff:true games that week.
+ */
+function seasonPlayoffTeams(season: Season): Set<string> {
+  const bracket = championshipBracket(season);
+  const s = new Set<string>();
+  if (!bracket) return s;
+
+  function collect(node: BracketNode | null): void {
+    if (!node) return;
+    if (node.kind === "game") {
+      s.add(node.home);
+      s.add(node.away);
+      collect(node.left);
+      collect(node.right);
+    } else {
+      s.add(node.manager);
+      collect(node.child);
+    }
+  }
+  collect(bracket.root);
+  return s;
+}
+
+/** How many consecutive seasons a manager has gone since (or without ever) winning a title. */
+function longestTitleDrought(): { manager: string; length: number; from: number; to: number } | null {
+  const chronological = [...seasons].sort((a, b) => a.year - b.year);
+  const running = new Map<string, { len: number; startYear: number }>();
+  let best: { manager: string; length: number; from: number; to: number } | null = null;
+
+  for (const s of chronological) {
+    for (const t of s.teams) {
+      const cur = running.get(t.manager) ?? { len: 0, startYear: s.year };
+      if (s.champion === t.manager) {
+        cur.len = 0;
+      } else {
+        if (cur.len === 0) cur.startYear = s.year;
+        cur.len += 1;
+        if (!best || cur.len > best.length) {
+          best = { manager: t.manager, length: cur.len, from: cur.startYear, to: s.year };
+        }
+      }
+      running.set(t.manager, cur);
+    }
+  }
+  return best;
+}
+
+/** First overall picks, last overall picks, and the biggest year-over-year draft-slot swing. */
+function draftLotteryRecords(): RecordEntry[] {
+  const firstPickCounts = new Map<string, number>();
+  const lastPickCounts = new Map<string, number>();
+  const slotsByManager = new Map<string, { year: number; slot: number }[]>();
+
+  for (const s of seasons) {
+    if (!s.draft || s.draft.length === 0) continue;
+    const maxOverall = Math.max(...s.draft.map((p) => p.overall));
+    for (const p of s.draft) {
+      if (p.overall === 1) firstPickCounts.set(p.manager, (firstPickCounts.get(p.manager) ?? 0) + 1);
+      if (p.overall === maxOverall) lastPickCounts.set(p.manager, (lastPickCounts.get(p.manager) ?? 0) + 1);
+      if (p.round === 1) {
+        const arr = slotsByManager.get(p.manager) ?? [];
+        arr.push({ year: s.year, slot: p.overall });
+        slotsByManager.set(p.manager, arr);
+      }
+    }
+  }
+
+  const entries: RecordEntry[] = [];
+
+  const topFirst = [...firstPickCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (topFirst) {
+    entries.push({ category: "Draft Lottery", label: "Most #1 overall picks", value: `${topFirst[1]}x`,
+      detail: managerName(topFirst[0]), year: seasons[0]?.year ?? 0, href: `/managers/${topFirst[0]}` });
+  }
+
+  const topLast = [...lastPickCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (topLast) {
+    entries.push({ category: "Draft Lottery", label: "Most last picks", value: `${topLast[1]}x`,
+      detail: managerName(topLast[0]), year: seasons[0]?.year ?? 0, href: `/managers/${topLast[0]}` });
+  }
+
+  let bestSwing: { manager: string; swing: number; fromYear: number; toYear: number; fromSlot: number; toSlot: number } | null = null;
+  for (const [slug, list] of slotsByManager) {
+    const sorted = [...list].sort((a, b) => a.year - b.year);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const cur = sorted[i];
+      const swing = Math.abs(cur.slot - prev.slot);
+      if (!bestSwing || swing > bestSwing.swing) {
+        bestSwing = { manager: slug, swing, fromYear: prev.year, toYear: cur.year, fromSlot: prev.slot, toSlot: cur.slot };
+      }
+    }
+  }
+  if (bestSwing) {
+    entries.push({ category: "Draft Lottery", label: "Biggest draft-slot swing", value: `${bestSwing.swing} slots`,
+      detail: `${managerName(bestSwing.manager)}, pick ${bestSwing.fromSlot} in ${bestSwing.fromYear} to pick ${bestSwing.toSlot} in ${bestSwing.toYear}`,
+      year: bestSwing.toYear, href: `/managers/${bestSwing.manager}` });
+  }
+
+  return entries;
+}
+
+/** Who has scored the outright highest total in a given week most often (all teams, every week). */
+function weeklyHighScoreLeader(): { manager: string; count: number } | null {
+  const counts = new Map<string, number>();
+  for (const s of seasons) {
+    const weeks = new Map<number, { manager: string; score: number }[]>();
+    for (const m of s.matchups) {
+      const arr = weeks.get(m.week) ?? [];
+      arr.push({ manager: m.home, score: m.homeScore });
+      arr.push({ manager: m.away, score: m.awayScore });
+      weeks.set(m.week, arr);
+    }
+    for (const entries of weeks.values()) {
+      const top = [...entries].sort((a, b) => b.score - a.score)[0];
+      if (!top) continue;
+      counts.set(top.manager, (counts.get(top.manager) ?? 0) + 1);
+    }
+  }
+  const leader = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  return leader ? { manager: leader[0], count: leader[1] } : null;
+}
+
+/** The worst record that still made an 8-team bracket, and the best record that still missed it. */
+function playoffThresholdRecords(): RecordEntry[] {
+  let worstIn: { manager: string; year: number; wins: number; losses: number; ties: number; pointsFor: number } | null = null;
+  let bestOut: { manager: string; year: number; wins: number; losses: number; ties: number; pointsFor: number } | null = null;
+
+  for (const s of seasons) {
+    const inPlayoffs = seasonPlayoffTeams(s);
+    for (const t of s.teams) {
+      const games = gamesOf(t);
+      const winPct = (t.wins + t.ties * 0.5) / games;
+      if (inPlayoffs.has(t.manager)) {
+        const worstPct = worstIn ? (worstIn.wins + worstIn.ties * 0.5) / gamesOf(worstIn) : Infinity;
+        if (!worstIn || winPct < worstPct || (winPct === worstPct && t.pointsFor < worstIn.pointsFor)) {
+          worstIn = { manager: t.manager, year: s.year, wins: t.wins, losses: t.losses, ties: t.ties, pointsFor: t.pointsFor };
+        }
+      } else {
+        const bestPct = bestOut ? (bestOut.wins + bestOut.ties * 0.5) / gamesOf(bestOut) : -Infinity;
+        if (!bestOut || winPct > bestPct || (winPct === bestPct && t.pointsFor > bestOut.pointsFor)) {
+          bestOut = { manager: t.manager, year: s.year, wins: t.wins, losses: t.losses, ties: t.ties, pointsFor: t.pointsFor };
+        }
+      }
+    }
+  }
+
+  const entries: RecordEntry[] = [];
+  if (worstIn) {
+    entries.push({ category: "Playoffs & Championships", label: "Worst record to make the playoffs",
+      value: recordLine(worstIn.wins, worstIn.losses, worstIn.ties),
+      detail: managerName(worstIn.manager), year: worstIn.year });
+  }
+  if (bestOut) {
+    entries.push({ category: "Playoffs & Championships", label: "Best record to miss the playoffs",
+      value: recordLine(bestOut.wins, bestOut.losses, bestOut.ties),
+      detail: managerName(bestOut.manager), year: bestOut.year });
+  }
+  return entries;
+}
+
+/** Closest and most lopsided championship games, by final margin. */
+function championshipMarginRecords(): RecordEntry[] {
+  const games = seasons
+    .filter((s) => s.championshipScore && s.championshipScore.length === 2)
+    .map((s) => ({
+      year: s.year, champion: s.champion, runnerUp: s.runnerUp,
+      margin: Math.abs(s.championshipScore[0] - s.championshipScore[1]),
+      score: s.championshipScore,
+    }));
+  if (games.length === 0) return [];
+
+  const closest = [...games].sort((a, b) => a.margin - b.margin)[0];
+  const lopsided = [...games].sort((a, b) => b.margin - a.margin)[0];
+
+  return [
+    { category: "Playoffs & Championships", label: "Closest championship game", value: fmt(closest.margin),
+      detail: `${managerName(closest.champion)} over ${managerName(closest.runnerUp)}, ${fmt(closest.score[0])}-${fmt(closest.score[1])}`,
+      year: closest.year },
+    { category: "Playoffs & Championships", label: "Most lopsided championship game", value: fmt(lopsided.margin),
+      detail: `${managerName(lopsided.champion)} over ${managerName(lopsided.runnerUp)}, ${fmt(lopsided.score[0])}-${fmt(lopsided.score[1])}`,
+      year: lopsided.year },
+  ];
+}
+
+/* ------------------------------------------------------------------ */
+/* helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+export const round2 = (n: number): number => Math.round(n * 100) / 100;
+export const fmt = (n: number): string =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const pct = (n: number): string => (n * 100).toFixed(1) + "%";
+export const recordLine = (w: number, l: number, t: number): string =>
+  t > 0 ? `${w}-${l}-${t}` : `${w}-${l}`;
+
+export function seasonByYear(year: number): Season | undefined {
+  return seasons.find((s) => s.year === year);
+}
+
+export function champions(): { year: number; champion: string; championTeamName: string; runnerUp: string; score: [number, number] }[] {
+  return seasons.map((s) => ({
+    year: s.year, champion: s.champion,
+    championTeamName: s.teams.find((t) => t.manager === s.champion)?.teamName ?? "",
+    runnerUp: s.runnerUp,
+    score: s.championshipScore,
+  }));
+}
+
+export function totalMatchups(): number {
+  return seasons.reduce((n, s) => n + s.matchups.length, 0);
+}
+
+
+/* ------------------------------------------------------------------ */
+/* championship bracket                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Reconstructs the path to the title for a season, since the archive only
+ * records `playoff: true` on each game (no round name, bracket slot, or bye
+ * flag). Works backward from the known champion/runner-up: whoever they
+ * played in the prior playoff week must be who they beat to get there, and
+ * a team the trace expects but can't find that week had a bye into the next
+ * round. This surfaces only the games that led to the title, not the full
+ * consolation ladder that ran alongside it.
+ */
+export type BracketNode =
+  | {
+      kind: "game";
+      week: number;
+      home: string; homeSeed: number; homeScore: number;
+      away: string; awaySeed: number; awayScore: number;
+      left: BracketNode | null;
+      right: BracketNode | null;
+    }
+  | {
+      kind: "bye";
+      week: number;
+      manager: string; seed: number;
+      child: BracketNode | null;
+    };
+
+export interface ChampionshipBracket {
+  root: BracketNode;
+  roundCount: number;
+}
+
+export function roundLabel(roundsFromFinal: number): string {
+  if (roundsFromFinal === 0) return "Championship";
+  if (roundsFromFinal === 1) return "Semifinal";
+  if (roundsFromFinal === 2) return "Quarterfinal";
+  return `Round of ${2 ** (roundsFromFinal + 1)}`;
+}
+
+export function championshipBracket(season: Season): ChampionshipBracket | null {
+  const playoff = season.matchups.filter((m) => m.playoff);
+  if (playoff.length === 0) return null;
+
+  const weeks = [...new Set(playoff.map((m) => m.week))].sort((a, b) => a - b);
+  const byWeek = new Map<number, Matchup[]>(
+    weeks.map((w) => [w, playoff.filter((m) => m.week === w)])
+  );
+  const seedOf = new Map(season.teams.map((t) => [t.manager, t.seed]));
+
+  function build(manager: string, roundIdx: number): BracketNode | null {
+    if (roundIdx < 0) return null;
+    const week = weeks[roundIdx];
+    const matches = byWeek.get(week) ?? [];
+    const g = matches.find((m) => m.home === manager || m.away === manager);
+    if (g) {
+      return {
+        kind: "game",
+        week,
+        home: g.home, homeSeed: seedOf.get(g.home) ?? 0, homeScore: g.homeScore,
+        away: g.away, awaySeed: seedOf.get(g.away) ?? 0, awayScore: g.awayScore,
+        left: build(g.home, roundIdx - 1),
+        right: build(g.away, roundIdx - 1),
+      };
+    }
+    // No game this round for a team we know reached the next round: a bye.
+    return {
+      kind: "bye",
+      week,
+      manager, seed: seedOf.get(manager) ?? 0,
+      child: build(manager, roundIdx - 1),
+    };
+  }
+
+  const root = build(season.champion, weeks.length - 1);
+  if (!root) return null;
+  return { root, roundCount: weeks.length };
+}

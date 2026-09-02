@@ -1,0 +1,244 @@
+@import "./tokens.css";
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 620px at 82% -8%, #4A1B7A 0%, transparent 62%),
+    radial-gradient(760px 480px at 6% 8%, #35135C 0%, transparent 58%),
+    linear-gradient(180deg, var(--ground) 0%, var(--ground-deep) 68%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* the trophy hero shot, spanning the full page width behind the hero -
+   scrolls away with the rest of the page rather than staying pinned.
+   aspect-ratio keeps the whole trophy in frame (no cropping), and the
+   mask fades it out at the bottom instead of cutting off hard. */
+.trophy-bg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--shell);
+  aspect-ratio: 678 / 1024;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.15;
+  background-image: url("/trophy-bg.jpg");
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: contain;
+  -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 96%);
+  mask-image: linear-gradient(to bottom, black 65%, transparent 96%);
+}
+
+/* the sweeping light arcs from the reference, as ambient texture */
+.arcs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+}
+
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-4);
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-3);
+  line-height: 1.02;
+  letter-spacing: 0.012em;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-family: var(--font-body);
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+p { margin: 0 0 1rem; max-width: var(--measure); color: var(--text-muted); }
+
+a { color: var(--lavender); text-decoration-color: var(--orchid-dim); }
+a:hover { color: var(--orchid-bright); }
+
+:focus-visible {
+  outline: 2px solid var(--orchid-bright);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--orchid-bright);
+  margin: 0 0 0.75rem;
+}
+
+.muted { color: var(--text-muted); }
+.dim { color: var(--text-dim); }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* ---- cards ---- */
+
+.card {
+  background: linear-gradient(160deg, var(--surface-raised) 0%, var(--surface) 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--gap);
+}
+
+.grid { display: grid; gap: var(--gap); }
+.grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+/* ---- buttons ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, var(--orchid-bright), var(--orchid));
+  color: #2A0640;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  box-shadow: var(--shadow-glow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:hover { transform: translateY(-1px); color: #2A0640; box-shadow: 0 0 34px var(--orchid-glow); }
+
+.btn.ghost {
+  background: transparent;
+  border-color: var(--line-bright);
+  color: var(--lavender);
+  box-shadow: none;
+}
+.btn.ghost:hover { border-color: var(--orchid); color: var(--orchid-bright); }
+
+/* ---- tables ---- */
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sunk);
+}
+
+table { border-collapse: collapse; width: 100%; min-width: 560px; }
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--ground-lift);
+  color: var(--text-dim);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+
+tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--orchid-wash); }
+td.n, th.n { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td.name { color: var(--text); font-weight: 600; white-space: nowrap; }
+
+/* ---- misc ---- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-bright);
+  background: var(--orchid-wash);
+  color: var(--lavender);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pill.gold { border-color: rgba(245, 196, 81, 0.45); background: rgba(245, 196, 81, 0.12); color: var(--gold); }
+
+.section { padding: var(--gap-xl) 0 0; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.85rem;
+  margin-bottom: var(--gap-lg);
+}
+
+.sample-banner {
+  background: var(--orchid-wash);
+  border-bottom: 1px solid var(--line-bright);
+  color: var(--lavender);
+  font-size: 0.8125rem;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  position: relative;
+  z-index: 2;
+}
+.sample-banner strong { color: var(--orchid-bright); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

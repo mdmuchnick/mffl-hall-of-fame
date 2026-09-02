@@ -1,0 +1,233 @@
+---
+import Base from "../../layouts/Base.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import StatBlock from "../../components/StatBlock.astro";
+import { careerRecords, seasons, headToHeadMatrix, managerName,
+         recordLine, fmt, pct, trophyCase } from "../../data/league";
+
+export function getStaticPaths() {
+  return careerRecords().map((c) => ({ params: { slug: c.slug }, props: { career: c } }));
+}
+const { career } = Astro.props;
+
+const bySeason = seasons
+  .map((s) => {
+    const team = s.teams.find((t) => t.manager === career.slug);
+    if (!team) return null;
+    return { year: s.year, team, champion: s.champion === career.slug,
+             runnerUp: s.runnerUp === career.slug };
+  })
+  .filter((x): x is NonNullable<typeof x> => x !== null);
+
+const h2h = headToHeadMatrix()[career.slug] ?? {};
+const rivals = Object.entries(h2h)
+  .filter(([, r]) => r.meetings > 0)
+  .sort((a, b) => b[1].meetings - a[1].meetings);
+const best = [...rivals].sort((a, b) => (b[1].wins - b[1].losses) - (a[1].wins - a[1].losses))[0];
+const worst = [...rivals].sort((a, b) => (a[1].wins - a[1].losses) - (b[1].wins - b[1].losses))[0];
+
+const trophies = trophyCase(career.slug);
+const trophyCards = [
+  { label: "League Championships", years: trophies.championships, image: "/images/trophies/league-champ.png" },
+  { label: "Best Regular Season Record", years: trophies.bestRecordSeasons, image: "/images/trophies/best-record.png" },
+  { label: "Most Points Champion", years: trophies.pointsChampionships, image: "/images/trophies/most-points.png" },
+  { label: "Toilet Bowl (Last Place)", years: trophies.toiletBowls, image: "/images/trophies/toilet-bowl.png" },
+  { label: "Runner-Up (2nd Place)", years: trophies.runnerUps, image: "/images/trophies/runner-up.png" },
+].filter((c) => c.years.length > 0);
+---
+<Base title={career.name}>
+  <PageHeader eyebrow={`${career.seasons} seasons`} title={career.name} avatar={career.photo} avatarFull={career.photoFull} />
+
+  <StatBlock stats={[
+    { value: career.titles, label: "Titles", tone: career.titles ? "gold" : undefined },
+    { value: recordLine(career.wins, career.losses, career.ties), label: "Career record" },
+    { value: pct(career.winPct), label: "Win %" },
+    { value: career.playoffAppearances, label: "Playoff trips" },
+    { value: fmt(career.pointsPerGame), label: "Pts / game" },
+  ]} />
+
+  <section class="section">
+    <div class="section-head"><h2>Trophy Case</h2></div>
+    {trophyCards.length === 0 ? (
+      <p class="empty">No hardware yet — the case is empty. Every season is a chance.</p>
+    ) : (
+      <>
+        {trophies.championshipAppearances > 0 && (
+          <p class="trophy-note">
+            {trophies.championshipAppearances} championship game {trophies.championshipAppearances === 1 ? "appearance" : "appearances"}.
+          </p>
+        )}
+        <div class="trophy-case">
+          {trophyCards.map((t) => (
+            <article class="trophy-slot">
+              <div class="trophy-img-wrap">
+                <img class="trophy-img" src={t.image} alt={t.label} width="200" height="640" loading="lazy" />
+                {t.years.length > 1 && <span class="trophy-count">&times;{t.years.length}</span>}
+              </div>
+              <p class="trophy-label">{t.label}</p>
+              <p class="trophy-years">{t.years.join(", ")}</p>
+            </article>
+          ))}
+        </div>
+      </>
+    )}
+  </section>
+
+  {best && worst && (
+    <section class="section">
+      <div class="section-head"><h2>The Book On Them</h2></div>
+      <div class="grid cols-2">
+        <article class="card">
+          <p class="eyebrow">Owns</p>
+          <p class="line"><a href={`/managers/${best[0]}`}>{managerName(best[0])}</a></p>
+          <p class="num dim">{best[1].wins}-{best[1].losses} in {best[1].meetings} meetings</p>
+        </article>
+        <article class="card">
+          <p class="eyebrow">Owned by</p>
+          <p class="line"><a href={`/managers/${worst[0]}`}>{managerName(worst[0])}</a></p>
+          <p class="num dim">{worst[1].wins}-{worst[1].losses} in {worst[1].meetings} meetings</p>
+        </article>
+      </div>
+    </section>
+  )}
+
+  <section class="section">
+    <div class="section-head"><h2>Season by Season</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Year</th><th>Team</th><th class="n">Seed</th><th class="n">Record</th><th class="n">Points for</th><th></th></tr>
+        </thead>
+        <tbody>
+          {bySeason.map((r) => (
+            <tr>
+              <td class="name"><a href={`/seasons/${r.year}`}>{r.year}</a></td>
+              <td>{r.team.teamName}</td>
+              <td class="n">{r.team.seed}</td>
+              <td class="n">{recordLine(r.team.wins, r.team.losses, r.team.ties)}</td>
+              <td class="n">{fmt(r.team.pointsFor)}</td>
+              <td>
+                {r.champion && <span class="pill gold">Champion</span>}
+                {r.runnerUp && <span class="pill">Runner-up</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Head to Head</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Opponent</th><th class="n">Record</th><th class="n">Meetings</th><th class="n">Playoff</th><th class="n">Pts for</th><th class="n">Pts against</th></tr></thead>
+        <tbody>
+          {rivals.map(([slug, r]) => (
+            <tr>
+              <td class="name"><a href={`/managers/${slug}`}>{managerName(slug)}</a></td>
+              <td class="n">{recordLine(r.wins, r.losses, r.ties)}</td>
+              <td class="n">{r.meetings}</td>
+              <td class="n">{r.playoffMeetings || "—"}</td>
+              <td class="n">{fmt(r.pointsFor)}</td>
+              <td class="n">{fmt(r.pointsAgainst)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <style>
+    .line { font-family: var(--font-display); font-size: var(--step-2); text-transform: uppercase; color: var(--text); margin: 0 0 0.25rem; }
+    .line a { color: inherit; text-decoration: none; }
+    .line a:hover { color: var(--orchid-bright); text-decoration: underline; }
+    .trophy-note { font-size: 0.9375rem; color: var(--text-muted); margin: -0.25rem 0 1rem; }
+    .empty { padding: 1.25rem; border: 1px dashed var(--line-bright); border-radius: var(--radius); max-width: var(--measure); }
+
+    /* The trophy case: a lit museum shelf. Each trophy stands on its own
+       spotlight glow (echoes tokens.css's "the museum is open at night"
+       direction) inside one long display case. */
+    .trophy-case {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--gap-lg) var(--gap-sm);
+      padding: var(--gap-lg) var(--gap) var(--gap);
+      background:
+        radial-gradient(ellipse 90% 60% at 50% 100%, var(--orchid-wash), transparent 70%),
+        var(--surface-sunk);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+    }
+    .trophy-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.6rem;
+    }
+    .trophy-img-wrap {
+      position: relative;
+      width: 100%;
+      height: 150px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .trophy-img-wrap::before {
+      content: "";
+      position: absolute;
+      bottom: 6px;
+      width: 68%;
+      height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, var(--orchid-glow), transparent 72%);
+      filter: blur(3px);
+    }
+    .trophy-img {
+      position: relative;
+      max-height: 150px;
+      max-width: 100%;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 12px rgba(8, 2, 16, 0.65));
+    }
+    .trophy-count {
+      position: absolute;
+      top: 4px;
+      right: 8%;
+      background: var(--gold);
+      color: var(--ground-deep);
+      font-family: var(--font-data);
+      font-weight: 700;
+      font-size: 0.75rem;
+      line-height: 1;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(8, 2, 16, 0.5);
+    }
+    .trophy-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin: 0;
+    }
+    .trophy-years {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin: 0;
+    }
+    @media (max-width: 640px) {
+      .trophy-case { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</Base>

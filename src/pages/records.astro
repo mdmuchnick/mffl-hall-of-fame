@@ -1,0 +1,91 @@
+---
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { recordBook } from "../data/league";
+import { careerPlayerRecords } from "../data/nflEraLeaders";
+import { nflSeasonRecords } from "../data/nflSeasonRecords";
+const records = recordBook();
+const categoryOrder = [
+  "Single-Game Extremes",
+  "Season & Streaks",
+  "Career Totals",
+  "Draft Lottery",
+  "Playoffs & Championships",
+];
+const grouped = categoryOrder
+  .map((cat) => ({ cat, items: records.filter((r) => r.category === cat) }))
+  .filter((g) => g.items.length > 0);
+const careerPlayer = careerPlayerRecords();
+---
+<Base title="Record Book">
+  <PageHeader
+    eyebrow="The extremes"
+    title="Record Book"
+    lede="The best and worst things anyone has ever done in this league."
+  />
+  {grouped.map((g) => (
+    <section class="rb-section">
+      <h2 class="rb-heading">{g.cat}</h2>
+      <div class="grid cols-2">
+        {g.items.map((r) => (
+          <article class="card rec">
+            <p class="eyebrow">{r.label}</p>
+            <p class="val num">{r.value}</p>
+            <p class="det">{r.detail}</p>
+            <a class="yr num" href={r.href ?? `/seasons/${r.year}`}>{r.href ? "view manager" : r.year}</a>
+          </article>
+        ))}
+      </div>
+    </section>
+  ))}
+
+  <section class="rb-section">
+    <h2 class="rb-heading">Career Player Records</h2>
+    <p class="rb-note">Real NFL statistics, not MFFL rosters — the all-time leader in each category across 2002–2025, taken straight from the Career Leaders by Position on the <a href="/standings">All-Time Standings</a> page.</p>
+    <div class="grid cols-2">
+      {careerPlayer.map((r) => (
+        <article class="card rec">
+          <p class="eyebrow">{r.label}</p>
+          <p class="val num">{r.value}</p>
+          <p class="det">{r.player}</p>
+          <span class="yr num">{r.detail}</span>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="rb-section">
+    <h2 class="rb-heading">Season Player Records</h2>
+    <p class="rb-note">Real NFL statistics, not MFFL rosters — the single-season NFL record in each category, 2002–2025.</p>
+    <div class="grid cols-2">
+      {nflSeasonRecords.map((r) => (
+        <article class="card rec">
+          <p class="eyebrow">{r.label}</p>
+          <p class="val num">{r.value}</p>
+          <p class="det">{r.player}, {r.detail}</p>
+          <span class="yr num">{r.team}, {r.year}</span>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <style>
+    .rb-heading {
+      font-family: var(--font-display);
+      font-size: var(--step-1);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin: 2.5rem 0 1rem;
+      color: var(--orchid-bright);
+    }
+    .rb-section:first-of-type .rb-heading { margin-top: 0.5rem; }
+    .rb-note { margin: -0.5rem 0 1rem; max-width: 60ch; font-size: 0.9375rem; color: var(--text-muted); }
+    .rb-note a { color: var(--text-dim); }
+    .rb-note a:hover { color: var(--orchid-bright); }
+    .rec { display: grid; gap: 0.35rem; align-content: start; }
+    .val { font-family: var(--font-data); font-weight: 700; font-size: var(--step-3); color: var(--text); margin: 0; line-height: 1; }
+    .det { margin: 0; font-size: 0.9375rem; }
+    .yr { justify-self: start; margin-top: 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--text-dim); text-decoration: none; }
+    .yr:hover { color: var(--orchid-bright); }
+  </style>
+</Base>

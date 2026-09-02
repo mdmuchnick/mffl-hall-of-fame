@@ -1,0 +1,197 @@
+---
+import Base from "../../layouts/Base.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import StatBlock from "../../components/StatBlock.astro";
+import { seasons, managerName, fmt, recordLine, championshipBracket } from "../../data/league";
+import BracketNode from "../../components/BracketNode.astro";
+import { recapForYear } from "../../data/lore";
+
+export function getStaticPaths() {
+  return seasons.map((s) => ({ params: { year: String(s.year) }, props: { season: s } }));
+}
+const { season } = Astro.props;
+
+const standings = [...season.teams].sort((a, b) => a.seed - b.seed);
+const regular = season.matchups.filter((m) => !m.playoff);
+const bracket = championshipBracket(season);
+const weeks = [...new Set(regular.map((m) => m.week))].sort((a, b) => a - b);
+const draftRounds = [...new Set(season.draft.map((p) => p.round))].sort((a, b) => a - b);
+const ownerTeamName = (managerSlug: string) =>
+  season.teams.find((t) => t.manager === managerSlug)?.teamName ?? "";
+const recap = recapForYear(season.year);
+---
+<Base title={`${season.year} Season`}>
+  <PageHeader eyebrow={`${season.teamCount} teams · ${season.regularSeasonWeeks} weeks`} title={`${season.year}`} />
+
+  <StatBlock stats={[
+    { value: managerName(season.champion), label: "Champion", tone: "gold" },
+    { value: managerName(season.runnerUp), label: "Runner-up" },
+    { value: `${fmt(season.championshipScore[0])}–${fmt(season.championshipScore[1])}`, label: "Final" },
+    { value: season.draft.length || "—", label: "Draft picks" },
+  ]} />
+
+  <section class="section">
+    <div class="section-head"><h2>Final Standings</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Seed</th><th>Manager</th><th>Team</th><th class="n">Record</th><th class="n">Points for</th><th class="n">Points against</th></tr>
+        </thead>
+        <tbody>
+          {standings.map((t) => (
+            <tr>
+              <td class="n dim">{t.seed}</td>
+              <td class="name"><a href={`/managers/${t.manager}`}>{managerName(t.manager)}</a></td>
+              <td>{t.teamName}</td>
+              <td class="n">{recordLine(t.wins, t.losses, t.ties)}</td>
+              <td class="n">{fmt(t.pointsFor)}</td>
+              <td class="n">{fmt(t.pointsAgainst)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Playoffs</h2></div>
+    {bracket ? (
+      <div class="bracket-shell">
+        <div class="bracket-root">
+          <BracketNode node={bracket.root} depth={0} />
+        </div>
+      </div>
+    ) : (
+      <p class="empty">No playoff bracket recorded for {season.year}.</p>
+    )}
+  </section>
+
+  {season.mvp && season.mvpTop3 && (
+    <section class="section">
+      <div class="section-head"><h2>Season MVP</h2></div>
+      <p class="mvp-lede">
+        <strong>{season.mvp.player}</strong> ({season.mvp.position}) — VOR {season.mvp.vor.toFixed(2)} · owned by{" "}
+        <a href={`/managers/${season.mvp.manager}`}>{managerName(season.mvp.manager)}</a>
+        {ownerTeamName(season.mvp.manager) && <span class="team">&ldquo;{ownerTeamName(season.mvp.manager)}&rdquo;</span>}
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Player</th><th>Pos</th><th class="n">VOR</th><th>Manager</th><th>Team</th><th>Note</th></tr>
+          </thead>
+          <tbody>
+            {season.mvpTop3.map((c) => (
+              <tr class={c.player === season.mvp!.player ? "mvp-row" : ""}>
+                <td class="n dim">{c.rank}</td>
+                <td class="name">{c.player}</td>
+                <td class="dim">{c.position}</td>
+                <td class="n">{c.vor.toFixed(2)}</td>
+                <td class="name"><a href={`/managers/${c.manager}`}>{managerName(c.manager)}</a></td>
+                <td>{ownerTeamName(c.manager)}</td>
+                <td class="dim">{c.note ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {season.mvpTop3.some((c) => c.statLine) && (
+        <div class="stat-lines">
+          <h3 class="wk">Stat Lines</h3>
+          {season.mvpTop3.filter((c) => c.statLine).map((c) => (
+            <p class="stat-line"><strong>{c.rank}. {c.player} ({c.position}):</strong> {c.statLine}</p>
+          ))}
+        </div>
+      )}
+      <p class="mvp-reasoning">{season.mvpReasoning}</p>
+      {season.mvpFlag && <p class="mvp-flag"><em>Note for review: {season.mvpFlag}</em></p>}
+    </section>
+  )}
+
+  <section class="section">
+    <div class="section-head"><h2>Week by Week</h2></div>
+    {weeks.map((w) => (
+      <div class="week">
+        <h3 class="wk">Week {w}</h3>
+        <div class="grid cols-3">
+          {regular.filter((m) => m.week === w).map((m) => (
+            <div class="card game">
+              <p class={m.homeScore > m.awayScore ? "win" : "loss"}>
+                {managerName(m.home)} <span class="num">{fmt(m.homeScore)}</span>
+              </p>
+              <p class={m.awayScore > m.homeScore ? "win" : "loss"}>
+                {managerName(m.away)} <span class="num">{fmt(m.awayScore)}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+
+  {recap && (
+    <section class="section">
+      <div class="section-head"><h2>From the Commissioner</h2></div>
+      <div class="recap">
+        {recap.paragraphs.map((p) => <p>{p}</p>)}
+      </div>
+    </section>
+  )}
+
+  <section class="section">
+    <div class="section-head"><h2>Draft Board</h2></div>
+    {season.draft.length === 0 ? (
+      <p class="empty">Yahoo has no draft results for {season.year}. The season's
+      games and standings survived; the draft board did not.</p>
+    ) : (
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Round</th><th>Pick</th><th>Manager</th><th>Player</th><th>Pos</th></tr></thead>
+          <tbody>
+            {draftRounds.map((r) =>
+              season.draft.filter((p) => p.round === r).map((p) => (
+                <tr>
+                  <td class="n dim">{p.round}</td>
+                  <td class="n dim">{p.overall}</td>
+                  <td class="name">{managerName(p.manager)}</td>
+                  <td>{p.player}</td>
+                  <td class="dim">{p.position}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+
+  <style>
+    .game p { margin: 0; display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9375rem; }
+    .game .win { color: var(--text); font-weight: 600; }
+    .game .loss { color: var(--text-dim); }
+    .bracket-shell { overflow-x: auto; padding: 0.5rem 0 1.5rem; }
+    .bracket-root { display: inline-flex; min-width: max-content; }
+    .week { margin-bottom: var(--gap-lg); }
+    .wk { font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem; }
+    .empty { padding: 1.25rem; border: 1px dashed var(--line-bright); border-radius: var(--radius); max-width: var(--measure); }
+    .mvp-lede { font-size: 0.9375rem; margin: 0 0 0.9rem; }
+    .mvp-lede .team {
+      margin-left: 0.4rem;
+      font-family: var(--font-data);
+      font-weight: 500;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    tr.mvp-row td { background: var(--orchid-wash); font-weight: 600; }
+    .stat-lines { margin-top: 1rem; }
+    .stat-line { font-size: 0.875rem; margin: 0.3rem 0; }
+    .mvp-reasoning { font-size: 0.9375rem; margin-top: 1rem; max-width: var(--measure); }
+    .mvp-flag { font-size: 0.875rem; color: var(--text-muted); max-width: var(--measure); }
+    .recap {
+      font-family: var(--font-plate-body);
+      font-size: 1.0625rem;
+      line-height: 1.7;
+    }
+    .recap p { margin: 0 0 1rem; max-width: none; color: var(--text); }
+    .recap p:last-child { margin-bottom: 0; }
+  </style>
+</Base>

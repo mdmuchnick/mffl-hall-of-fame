@@ -1,0 +1,66 @@
+---
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { managers, headToHeadMatrix, careerRecords } from "../data/league";
+
+const matrix = headToHeadMatrix();
+const active = careerRecords().map((c) => managers.find((m) => m.slug === c.slug)!);
+
+/** colour the cell by margin, so dominance reads before the numbers do */
+function tone(w: number, l: number): string {
+  const n = w + l;
+  if (!n) return "none";
+  const edge = (w - l) / n;
+  if (edge > 0.25) return "strong-w";
+  if (edge > 0.05) return "w";
+  if (edge < -0.25) return "strong-l";
+  if (edge < -0.05) return "l";
+  return "even";
+}
+---
+<Base title="Rivalries">
+  <PageHeader
+    eyebrow="Head to head"
+    title="Rivalries"
+    lede="Read a row across: that manager's record against everyone else. Green means they are ahead in the series."
+  />
+  <div class="table-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>vs →</th>
+          {active.map((m) => <th class="n abbr" title={m.name}>{m.name.split(" ")[0]}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {active.map((row) => (
+          <tr>
+            <td class="name">{row.name}</td>
+            {active.map((col) => {
+              if (row.slug === col.slug) return <td class="n self">—</td>;
+              const h = matrix[row.slug][col.slug];
+              return (
+                <td class={`n cell ${tone(h.wins, h.losses)}`}
+                    title={`${row.name} vs ${col.name}: ${h.wins}-${h.losses}${h.ties ? "-" + h.ties : ""} in ${h.meetings} meetings`}>
+                  {h.wins}-{h.losses}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <style>
+    .matrix { min-width: 820px; }
+    .matrix .abbr { font-size: 0.625rem; }
+    .cell { font-size: 0.8125rem; font-weight: 600; }
+    .self { color: var(--text-dim); }
+    .strong-w { background: rgba(88, 214, 168, 0.18); color: var(--mint); }
+    .w { background: rgba(88, 214, 168, 0.08); color: var(--mint); }
+    .even { color: var(--text-muted); }
+    .l { background: rgba(255, 107, 122, 0.08); color: var(--coral); }
+    .strong-l { background: rgba(255, 107, 122, 0.18); color: var(--coral); }
+    tbody tr:hover td { background: inherit; }
+  </style>
+</Base>

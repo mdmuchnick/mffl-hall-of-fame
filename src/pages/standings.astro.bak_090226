@@ -1,0 +1,373 @@
+---
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { careerRecords, recordLine, fmt, pct } from "../data/league";
+import {
+  eraQbLeaders,
+  eraRbLeaders,
+  eraWrLeaders,
+  eraTeLeaders,
+  eraKLeaders,
+  eraDefLeaders,
+  commas,
+  oneDecimal,
+} from "../data/nflEraLeaders";
+const rows = careerRecords();
+---
+<Base title="All-Time Standings">
+  <PageHeader
+    eyebrow="Career"
+    title="All-Time Standings"
+    lede="Every regular-season and playoff game since the league started. Points per game is there because a 13-week season and a 14-week season do not compare on totals alone."
+  />
+  <div class="table-wrap">
+    <table class="sortable-table" id="standings-table">
+      <thead>
+        <tr>
+          <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+          <th data-sort="name" data-type="text">Manager</th>
+          <th class="n" data-sort="seasons" data-type="num">Seasons</th>
+          <th class="n" data-sort="record" data-type="num">Record</th>
+          <th class="n" data-sort="winPct" data-type="num">Win %</th>
+          <th class="n" data-sort="titles" data-type="num">Titles</th>
+          <th class="n" data-sort="playoffs" data-type="num">Playoffs</th>
+          <th class="n" data-sort="pointsFor" data-type="num">Points for</th>
+          <th class="n" data-sort="ppg" data-type="num">Pts / game</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr>
+            <td class="n dim" data-sort="rank" data-value={i + 1}>{i + 1}</td>
+            <td class="name" data-sort="name" data-value={r.name.toLowerCase()}>
+              <a href={`/managers/${r.slug}`}>{r.name}</a>
+            </td>
+            <td class="n" data-sort="seasons" data-value={r.seasons}>{r.seasons}</td>
+            <td class="n" data-sort="record" data-value={r.wins + r.ties * 0.5}>
+              {recordLine(r.wins, r.losses, r.ties)}
+            </td>
+            <td class="n" data-sort="winPct" data-value={r.winPct}>{pct(r.winPct)}</td>
+            <td class="n" data-sort="titles" data-value={r.titles}>{r.titles > 0 ? r.titles : "—"}</td>
+            <td class="n" data-sort="playoffs" data-value={r.playoffAppearances}>{r.playoffAppearances}</td>
+            <td class="n" data-sort="pointsFor" data-value={r.pointsFor}>{fmt(r.pointsFor)}</td>
+            <td class="n" data-sort="ppg" data-value={r.pointsPerGame}>{fmt(r.pointsPerGame)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <section class="era-leaders">
+    <PageHeader
+      eyebrow="The NFL, 2002–present"
+      title="Career Leaders by Position"
+      lede="Real NFL statistics, not MFFL rosters — the top players at each position by cumulative production across the league's entire lifespan, 2002 through the 2025 season (2026 has barely kicked off). Where a player's own career started earlier or is still going, only the games played inside that window count. Fantasy points use MFFL's current (2026) scoring — full PPR, 6 points for every touchdown — applied the same way across all 25 seasons, even though the league's real settings have changed over time. A few categories (100/300-yard game bonuses, kicker distance tiers, points allowed, and a couple of QB/DEF categories) can't be computed from career totals and are approximated or left out — see the source file for the exact formula. Click a column header to sort by it; click again to flip the order."
+    />
+
+    <div class="position-block">
+      <h3>Quarterbacks</h3>
+      <div class="table-wrap">
+        <table class="sortable-table" id="qb-table">
+          <thead>
+            <tr>
+              <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+              <th data-sort="name" data-type="text">Player</th>
+              <th class="n" data-sort="passYds" data-type="num">Pass Yds</th>
+              <th class="n" data-sort="passTd" data-type="num">Pass TD</th>
+              <th class="n" data-sort="rushYds" data-type="num">Rush Yds</th>
+              <th class="n" data-sort="rushTd" data-type="num">Rush TD</th>
+              <th class="n" data-sort="ints" data-type="num">INT</th>
+              <th class="n" data-sort="fantasyPts" data-type="num">Fantasy Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {eraQbLeaders.map((p) => (
+              <tr>
+                <td class="n dim" data-sort="rank" data-value={p.rank}>{p.rank}</td>
+                <td class="name" data-sort="name" data-value={p.name.toLowerCase()}>{p.name}</td>
+                <td class="n" data-sort="passYds" data-value={p.passYds}>{commas(p.passYds)}</td>
+                <td class="n" data-sort="passTd" data-value={p.passTd}>{p.passTd}</td>
+                <td class="n" data-sort="rushYds" data-value={p.rushYds}>{commas(p.rushYds)}</td>
+                <td class="n" data-sort="rushTd" data-value={p.rushTd}>{p.rushTd}</td>
+                <td class="n" data-sort="ints" data-value={p.ints}>{p.ints}</td>
+                <td class="n" data-sort="fantasyPts" data-value={p.fantasyPts}>{oneDecimal(p.fantasyPts)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="position-block">
+      <h3>Running Backs</h3>
+      <div class="table-wrap">
+        <table class="sortable-table" id="rb-table">
+          <thead>
+            <tr>
+              <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+              <th data-sort="name" data-type="text">Player</th>
+              <th class="n" data-sort="rushYds" data-type="num">Rush Yds</th>
+              <th class="n" data-sort="rushTd" data-type="num">Rush TD</th>
+              <th class="n" data-sort="rec" data-type="num">Rec</th>
+              <th class="n" data-sort="recYds" data-type="num">Rec Yds</th>
+              <th class="n" data-sort="totalTd" data-type="num">Total TD</th>
+              <th class="n" data-sort="fantasyPts" data-type="num">Fantasy Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {eraRbLeaders.map((p) => (
+              <tr>
+                <td class="n dim" data-sort="rank" data-value={p.rank}>{p.rank}</td>
+                <td class="name" data-sort="name" data-value={p.name.toLowerCase()}>{p.name}</td>
+                <td class="n" data-sort="rushYds" data-value={p.rushYds}>{commas(p.rushYds)}</td>
+                <td class="n" data-sort="rushTd" data-value={p.rushTd}>{p.rushTd}</td>
+                <td class="n" data-sort="rec" data-value={p.rec}>{commas(p.rec)}</td>
+                <td class="n" data-sort="recYds" data-value={p.recYds}>{commas(p.recYds)}</td>
+                <td class="n" data-sort="totalTd" data-value={p.totalTd}>{p.totalTd}</td>
+                <td class="n" data-sort="fantasyPts" data-value={p.fantasyPts}>{oneDecimal(p.fantasyPts)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="position-block">
+      <h3>Wide Receivers</h3>
+      <div class="table-wrap">
+        <table class="sortable-table" id="wr-table">
+          <thead>
+            <tr>
+              <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+              <th data-sort="name" data-type="text">Player</th>
+              <th class="n" data-sort="rec" data-type="num">Rec</th>
+              <th class="n" data-sort="recYds" data-type="num">Rec Yds</th>
+              <th class="n" data-sort="recTd" data-type="num">Rec TD</th>
+              <th class="n" data-sort="ypr" data-type="num">Yds / Rec</th>
+              <th class="n" data-sort="fantasyPts" data-type="num">Fantasy Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {eraWrLeaders.map((p) => (
+              <tr>
+                <td class="n dim" data-sort="rank" data-value={p.rank}>{p.rank}</td>
+                <td class="name" data-sort="name" data-value={p.name.toLowerCase()}>{p.name}</td>
+                <td class="n" data-sort="rec" data-value={p.rec}>{commas(p.rec)}</td>
+                <td class="n" data-sort="recYds" data-value={p.recYds}>{commas(p.recYds)}</td>
+                <td class="n" data-sort="recTd" data-value={p.recTd}>{p.recTd}</td>
+                <td class="n" data-sort="ypr" data-value={p.ypr}>{oneDecimal(p.ypr)}</td>
+                <td class="n" data-sort="fantasyPts" data-value={p.fantasyPts}>{oneDecimal(p.fantasyPts)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="position-block">
+      <h3>Tight Ends</h3>
+      <div class="table-wrap">
+        <table class="sortable-table" id="te-table">
+          <thead>
+            <tr>
+              <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+              <th data-sort="name" data-type="text">Player</th>
+              <th class="n" data-sort="rec" data-type="num">Rec</th>
+              <th class="n" data-sort="recYds" data-type="num">Rec Yds</th>
+              <th class="n" data-sort="recTd" data-type="num">Rec TD</th>
+              <th class="n" data-sort="ypr" data-type="num">Yds / Rec</th>
+              <th class="n" data-sort="fantasyPts" data-type="num">Fantasy Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {eraTeLeaders.map((p) => (
+              <tr>
+                <td class="n dim" data-sort="rank" data-value={p.rank}>{p.rank}</td>
+                <td class="name" data-sort="name" data-value={p.name.toLowerCase()}>{p.name}</td>
+                <td class="n" data-sort="rec" data-value={p.rec}>{commas(p.rec)}</td>
+                <td class="n" data-sort="recYds" data-value={p.recYds}>{commas(p.recYds)}</td>
+                <td class="n" data-sort="recTd" data-value={p.recTd}>{p.recTd}</td>
+                <td class="n" data-sort="ypr" data-value={p.ypr}>{oneDecimal(p.ypr)}</td>
+                <td class="n" data-sort="fantasyPts" data-value={p.fantasyPts}>{oneDecimal(p.fantasyPts)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="position-block">
+      <h3>Kickers</h3>
+      <div class="table-wrap">
+        <table class="sortable-table" id="k-table">
+          <thead>
+            <tr>
+              <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+              <th data-sort="name" data-type="text">Player</th>
+              <th class="n" data-sort="fgMade" data-type="num">FG Made</th>
+              <th class="n" data-sort="fgAtt" data-type="num">FG Att</th>
+              <th class="n" data-sort="fgPct" data-type="num">FG %</th>
+              <th class="n" data-sort="xpMade" data-type="num">XP Made</th>
+              <th class="n" data-sort="points" data-type="num">Points</th>
+              <th class="n" data-sort="fantasyPts" data-type="num">Fantasy Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {eraKLeaders.map((p) => (
+              <tr>
+                <td class="n dim" data-sort="rank" data-value={p.rank}>{p.rank}</td>
+                <td class="name" data-sort="name" data-value={p.name.toLowerCase()}>{p.name}</td>
+                <td class="n" data-sort="fgMade" data-value={p.fgMade}>{p.fgMade}</td>
+                <td class="n" data-sort="fgAtt" data-value={p.fgAtt}>{p.fgAtt}</td>
+                <td class="n" data-sort="fgPct" data-value={p.fgPct}>{oneDecimal(p.fgPct)}%</td>
+                <td class="n" data-sort="xpMade" data-value={p.xpMade}>{p.xpMade}</td>
+                <td class="n" data-sort="points" data-value={p.points}>{commas(p.points)}</td>
+                <td class="n" data-sort="fantasyPts" data-value={p.fantasyPts}>{oneDecimal(p.fantasyPts)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="position-block">
+      <h3>Team Defense / Special Teams</h3>
+      <p class="position-note">Top 5 only. Ranked by sacks; fantasy points cover sacks, interceptions, fumble recoveries, and defensive/special-teams touchdowns only — points-allowed bonus scoring isn't included, since it doesn't aggregate cleanly across 24 seasons from public sources.</p>
+      <div class="table-wrap">
+        <table class="sortable-table" id="def-table">
+          <thead>
+            <tr>
+              <th data-sort="rank" data-type="num" aria-sort="ascending">#</th>
+              <th data-sort="team" data-type="text">Team</th>
+              <th class="n" data-sort="sacks" data-type="num">Sacks</th>
+              <th class="n" data-sort="ints" data-type="num">INT</th>
+              <th class="n" data-sort="fumbleRec" data-type="num">Fumble Rec</th>
+              <th class="n" data-sort="defTd" data-type="num">Def/ST TD</th>
+              <th class="n" data-sort="fantasyPts" data-type="num">Fantasy Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {eraDefLeaders.map((p) => (
+              <tr>
+                <td class="n dim" data-sort="rank" data-value={p.rank}>{p.rank}</td>
+                <td class="name" data-sort="team" data-value={p.team.toLowerCase()}>{p.team}</td>
+                <td class="n" data-sort="sacks" data-value={p.sacks}>{commas(p.sacks)}</td>
+                <td class="n" data-sort="ints" data-value={p.ints}>{p.ints}</td>
+                <td class="n" data-sort="fumbleRec" data-value={p.fumbleRec}>{p.fumbleRec}</td>
+                <td class="n" data-sort="defTd" data-value={p.defTd}>{p.defTd}</td>
+                <td class="n" data-sort="fantasyPts" data-value={p.fantasyPts}>{commas(p.fantasyPts)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  function initSortableTable(table: HTMLTableElement) {
+    const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>("thead th"));
+    const tbody = table.querySelector("tbody");
+    if (!tbody) return;
+
+    let currentKey = headers.find((h) => h.getAttribute("aria-sort"))?.dataset.sort ?? headers[0]?.dataset.sort ?? "";
+    let currentDir: 1 | -1 = headers.find((h) => h.dataset.sort === currentKey)?.getAttribute("aria-sort") === "descending" ? -1 : 1;
+
+    function applySort(key: string, dir: 1 | -1) {
+      const rows = Array.from(tbody!.querySelectorAll("tr"));
+      const type = headers.find((h) => h.dataset.sort === key)?.dataset.type ?? "text";
+
+      rows.sort((a, b) => {
+        const av = a.querySelector<HTMLElement>(`[data-sort="${key}"]`)?.dataset.value ?? "";
+        const bv = b.querySelector<HTMLElement>(`[data-sort="${key}"]`)?.dataset.value ?? "";
+        if (type === "num") return (parseFloat(av) - parseFloat(bv)) * dir;
+        return av.localeCompare(bv) * dir;
+      });
+
+      rows.forEach((row) => tbody!.appendChild(row));
+
+      headers.forEach((h) => {
+        if (h.dataset.sort === key) {
+          h.setAttribute("aria-sort", dir === 1 ? "ascending" : "descending");
+        } else {
+          h.removeAttribute("aria-sort");
+        }
+      });
+    }
+
+    headers.forEach((h) => {
+      h.tabIndex = 0;
+      h.setAttribute("role", "button");
+      const onActivate = () => {
+        const key = h.dataset.sort!;
+        if (key === currentKey) {
+          currentDir = currentDir === 1 ? -1 : 1;
+        } else {
+          currentKey = key;
+          // Text columns default ascending; numeric columns default descending
+          // (best record / most points first is the useful starting view).
+          currentDir = h.dataset.type === "text" ? 1 : -1;
+        }
+        applySort(currentKey, currentDir);
+      };
+      h.addEventListener("click", onActivate);
+      h.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onActivate();
+        }
+      });
+    });
+  }
+
+  document.querySelectorAll<HTMLTableElement>("table.sortable-table").forEach(initSortableTable);
+</script>
+
+<style>
+  .sortable-table thead th {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease;
+  }
+  .sortable-table thead th:hover {
+    color: var(--lavender);
+  }
+  .sortable-table thead th:focus-visible {
+    outline: 2px solid var(--orchid-bright);
+    outline-offset: -2px;
+  }
+  .sortable-table thead th[aria-sort]::after {
+    content: "";
+    display: inline-block;
+    margin-left: 0.35em;
+    border: 4px solid transparent;
+  }
+  .sortable-table thead th[aria-sort="ascending"]::after {
+    border-bottom-color: var(--orchid-bright);
+    transform: translateY(-2px);
+  }
+  .sortable-table thead th[aria-sort="descending"]::after {
+    border-top-color: var(--orchid-bright);
+    transform: translateY(2px);
+  }
+
+  .era-leaders {
+    margin-top: var(--step-6, 3rem);
+  }
+  .position-block {
+    margin-top: var(--step-5, 2rem);
+  }
+  .position-block h3 {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .position-note {
+    color: var(--text-muted);
+    font-size: var(--step--1, 0.8125rem);
+    max-width: 60ch;
+    margin: 0 0 0.75rem;
+  }
+</style>

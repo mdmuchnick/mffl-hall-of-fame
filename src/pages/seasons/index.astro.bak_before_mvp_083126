@@ -1,0 +1,62 @@
+---
+import Base from "../../layouts/Base.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import { seasons, managerName, fmt } from "../../data/league";
+import type { Season } from "../../data/league";
+
+const championTeamName = (s: Season) =>
+  s.teams.find((t) => t.manager === s.champion)?.teamName ?? "";
+---
+<Base title="Seasons">
+  <PageHeader eyebrow="The archive" title="Seasons" lede="One page per year. Final standings, every week's scores, the bracket, and the draft board where Yahoo still has one." />
+  <ul class="list">
+    {seasons.map((s) => (
+      <li>
+        <a href={`/seasons/${s.year}`}>
+          <span class="yr num">{s.year}</span>
+          <span class="body">
+            <span class="champ">
+              {managerName(s.champion)}
+              {championTeamName(s) && <span class="team">&ldquo;{championTeamName(s)}&rdquo;</span>}
+            </span>
+            <span class="sub dim">
+              def. {managerName(s.runnerUp)} {fmt(s.championshipScore[0])}–{fmt(s.championshipScore[1])}
+              · {s.teamCount} teams{s.draft.length === 0 ? " · no draft board" : ""}
+            </span>
+          </span>
+          <span class="pill gold">Champion</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+  <style>
+    .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+    .list a {
+      display: grid;
+      grid-template-columns: 4.5rem 1fr auto;
+      gap: var(--gap);
+      align-items: center;
+      padding: 0.9rem 1.1rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      text-decoration: none;
+    }
+    .list a:hover { border-color: var(--orchid); background: var(--surface-raised); }
+    .yr { font-family: var(--font-data); font-weight: 700; font-size: 1.25rem; color: var(--text); }
+    .body { display: grid; gap: 0.1rem; }
+    .champ { color: var(--text); font-weight: 600; }
+    .champ .team {
+      margin-left: 0.45rem;
+      font-family: var(--font-data);
+      font-weight: 500;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .sub { font-size: 0.8125rem; }
+    @media (max-width: 560px) {
+      .list a { grid-template-columns: 3.5rem 1fr; }
+      .list .pill { display: none; }
+    }
+  </style>
+</Base>

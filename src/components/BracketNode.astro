@@ -1,0 +1,156 @@
+---
+import type { BracketNode } from "../data/league";
+import { managerName, fmt, roundLabel } from "../data/league";
+
+interface Props {
+  node: BracketNode;
+  /** Rounds before the championship game; 0 = the championship itself. */
+  depth: number;
+}
+const { node, depth } = Astro.props;
+const label = roundLabel(depth);
+---
+
+{node.kind === "game" ? (
+  <div class:list={["bnode", !node.left && !node.right && "leaf"]}>
+    {node.left && node.right && (
+      <div class="bnode-children pair">
+        <div class="bnode-slot">
+          <Astro.self node={node.left} depth={depth + 1} />
+        </div>
+        <div class="bnode-slot">
+          <Astro.self node={node.right} depth={depth + 1} />
+        </div>
+      </div>
+    )}
+    <div class="bnode-self">
+      <article class:list={["bmatch", depth === 0 && "final"]}>
+        <p class="eyebrow">{label}</p>
+        <p class={node.homeScore > node.awayScore ? "win" : "loss"}>
+          <span class="seed">{node.homeSeed}</span>
+          <a href={`/managers/${node.home}`}>{managerName(node.home)}</a>
+          <span class="num">{fmt(node.homeScore)}</span>
+        </p>
+        <p class={node.awayScore > node.homeScore ? "win" : "loss"}>
+          <span class="seed">{node.awaySeed}</span>
+          <a href={`/managers/${node.away}`}>{managerName(node.away)}</a>
+          <span class="num">{fmt(node.awayScore)}</span>
+        </p>
+      </article>
+    </div>
+  </div>
+) : (
+  <div class:list={["bnode", !node.child && "leaf"]}>
+    {node.child && (
+      <div class="bnode-children single">
+        <div class="bnode-slot">
+          <Astro.self node={node.child} depth={depth + 1} />
+        </div>
+      </div>
+    )}
+    <div class="bnode-self">
+      <article class="bmatch bye">
+        <p class="eyebrow">{label}</p>
+        <p class="win">
+          <span class="seed">{node.seed}</span>
+          <a href={`/managers/${node.manager}`}>{managerName(node.manager)}</a>
+        </p>
+        <p class="loss bye-label">Bye</p>
+      </article>
+    </div>
+  </div>
+)}
+
+<style>
+  .bnode {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .bnode-children {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: relative;
+  }
+  .bnode-slot {
+    position: relative;
+    padding-right: 1.5rem;
+  }
+  .bnode-slot::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 1.5rem;
+    height: 0;
+    border-top: 2px solid var(--line-bright);
+  }
+  .bnode-children.pair .bnode-slot:first-child::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 0;
+    height: calc(50% + 0.75rem);
+    border-right: 2px solid var(--line-bright);
+  }
+  .bnode-children.pair .bnode-slot:last-child::before {
+    content: "";
+    position: absolute;
+    bottom: 50%;
+    right: 0;
+    width: 0;
+    height: calc(50% + 0.75rem);
+    border-right: 2px solid var(--line-bright);
+  }
+
+  .bmatch {
+    width: 15rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface-sunk);
+  }
+  .bmatch.final {
+    border-color: rgba(245, 196, 81, 0.5);
+    box-shadow: 0 0 24px rgba(245, 196, 81, 0.12);
+  }
+  .bmatch .eyebrow {
+    margin: 0 0 0.4rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .bmatch p {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .bmatch p + p { margin-top: 0.15rem; }
+  .bmatch .seed {
+    flex: 0 0 auto;
+    font-family: var(--font-data);
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    min-width: 1.1em;
+  }
+  .bmatch a { flex: 1 1 auto; color: inherit; text-decoration: none; }
+  .bmatch a:hover { color: var(--orchid-bright); }
+  .bmatch .num {
+    flex: 0 0 auto;
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+  .bmatch .win { color: var(--text); font-weight: 600; }
+  .bmatch .loss { color: var(--text-dim); }
+  .bmatch.bye .bye-label {
+    font-size: 0.75rem;
+    font-style: italic;
+  }
+</style>

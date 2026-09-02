@@ -1,0 +1,84 @@
+/* MFFL design tokens.
+   Direction: the museum is open at night. Deep violet ground, orchid light.
+   Deliberately single-theme - the whole identity is the dark room, so every
+   colour is painted explicitly rather than inherited. */
+
+:root {
+  color-scheme: dark;
+
+  /* ground */
+  --ground-deep: #12071F;
+  --ground: #1A0B2E;
+  --ground-lift: #241040;
+
+  /* surfaces */
+  --surface: #22103C;
+  --surface-raised: #2E1550;
+  --surface-sunk: #180A2B;
+
+  /* line work */
+  --line: #3A1C60;
+  --line-soft: #2A1247;
+  --line-bright: #582A8E;
+
+  /* accent - orchid */
+  --orchid: #C04BEE;
+  --orchid-bright: #D473FF;
+  --orchid-dim: #8B2FB0;
+  --orchid-wash: rgba(192, 75, 238, 0.12);
+  --orchid-glow: rgba(192, 75, 238, 0.42);
+
+  /* supporting */
+  --lavender: #E0BBF5;
+  --gold: #F5C451;          /* championships only */
+  --mint: #58D6A8;          /* wins / positive delta */
+  --coral: #FF6B7A;         /* losses / negative delta */
+
+  /* bronze / patina - Player Hall of Fame busts only */
+  --bronze-shine: #F1D8A6;
+  --bronze: #B98A47;
+  --bronze-deep: #6B4420;
+  --plinth: #16202A;
+  --plinth-line: #2C3D46;
+
+  /* text */
+  --text: #FFFFFF;
+  --text-muted: #B9A3D4;
+  --text-dim: #7D6B99;
+
+  /* type */
+  --font-display: Anton, "Arial Narrow", Impact, sans-serif;
+  --font-body: Barlow, "Helvetica Neue", Arial, sans-serif;
+  --font-data: Archivo, "Helvetica Neue", Arial, sans-serif;
+
+  /* engraved trophy plates only */
+  --font-plate: Cinzel, "Times New Roman", serif;
+  --font-plate-body: "EB Garamond", Georgia, serif;
+  --font-script: "Pinyon Script", "Brush Script MT", cursive;
+
+  /* scale */
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: clamp(1.35rem, 2.4vw, 1.75rem);
+  --step-3: clamp(1.8rem, 4vw, 2.75rem);
+  --step-4: clamp(2.6rem, 7vw, 5rem);
+  --step-5: clamp(3.4rem, 11vw, 7.5rem);
+
+  /* space */
+  --gap-xs: 0.375rem;
+  --gap-sm: 0.75rem;
+  --gap: 1.25rem;
+  --gap-lg: 2.5rem;
+  --gap-xl: 4.5rem;
+
+  --radius: 14px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+                 0 18px 40px rgba(8, 2, 16, 0.55);
+  --shadow-glow: 0 0 24px var(--orchid-glow);
+
+  --measure: 64ch;
+  --shell: 1180px;
+}

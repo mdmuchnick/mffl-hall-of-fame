@@ -1,0 +1,526 @@
+---
+import Base from "../layouts/Base.astro";
+import StatBlock from "../components/StatBlock.astro";
+import { league, seasons, champions, careerRecords, managerName, fmt,
+         recordLine, totalMatchups } from "../data/league";
+import { hallOfFame, onTheBallot } from "../data/hallOfFame";
+import PhotoTrigger from "../components/PhotoTrigger.astro";
+import { existsSync, readdirSync } from "node:fs";
+
+// Player photos are optional. If a manager has uploaded one via
+// /admin/hof-photos, it lands in public/players/<slug>.<ext> and we pick it
+// up here at build time. No photo on disk -> falls back to the bronze
+// silhouette bust, so the site works with zero photos uploaded.
+const playersDir = new URL("../../public/players/", import.meta.url);
+const PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+function playerPhoto(slug: string): string | null {
+  for (const ext of PHOTO_EXTENSIONS) {
+    if (existsSync(new URL(`${slug}.${ext}`, playersDir))) return `/players/${slug}.${ext}`;
+  }
+  return null;
+}
+
+const latest = seasons[0];
+const reigning = latest.champion;
+const careers = careerRecords();
+const reigningCareer = careers.find((c) => c.slug === reigning)!;
+const banners = champions();
+const mostTitles = careers[0];
+---
+<Base title="The Hall">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="bronzeGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#F1D8A6" />
+        <stop offset="45%" stop-color="#B98A47" />
+        <stop offset="100%" stop-color="#5C3A1C" />
+      </linearGradient>
+      <linearGradient id="bronzeSheen" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FFF4D8" />
+        <stop offset="30%" stop-color="#FFF4D8" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <section class="hero">
+    <div class="hero-head">
+      <div class="hero-head-text">
+        <p class="eyebrow">{seasons.length} seasons · {league.firstSeason}–{league.lastSeason} · {totalMatchups().toLocaleString()} matchups</p>
+        <h1>{league.fullName}</h1>
+      </div>
+      <img class="hero-crest" src="/mffl-crest.png" alt="" aria-hidden="true" width="150" height="187" />
+    </div>
+    <div class="reigning">
+      <span class="pill gold">Reigning champion · {latest.year}</span>
+      <div class="champ-row">
+        {reigningCareer.photo && reigningCareer.photoFull && (
+          <PhotoTrigger class="champ-avatar" src={reigningCareer.photo} full={reigningCareer.photoFull} alt={reigningCareer.name} />
+        )}
+        <p class="champ-name">{managerName(reigning)}</p>
+      </div>
+      <p class="champ-line">
+        Beat {managerName(latest.runnerUp)} {fmt(latest.championshipScore[0])}–{fmt(latest.championshipScore[1])}
+      </p>
+      <StatBlock stats={[
+        { value: reigningCareer.titles, label: "Titles", tone: "gold" },
+        { value: recordLine(reigningCareer.wins, reigningCareer.losses, reigningCareer.ties), label: "Career" },
+        { value: reigningCareer.seasons, label: "Seasons" },
+        { value: fmt(reigningCareer.pointsPerGame), label: "Pts / game" },
+      ]} />
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>The Banner Wall</h2>
+      <a class="btn ghost" href="/seasons">Every season</a>
+    </div>
+    <div class="banners">
+      {banners.map((b) => (
+        <a class="banner" href={`/seasons/${b.year}`} aria-label={`${b.year} champion: ${managerName(b.champion)}`}>
+          <span class="plate">
+            <span class="corner tl" aria-hidden="true"></span>
+            <span class="corner tr" aria-hidden="true"></span>
+            <span class="corner bl" aria-hidden="true"></span>
+            <span class="corner br" aria-hidden="true"></span>
+            <span class="plate-year">{b.year}</span>
+            {b.championTeamName && <span class="plate-team">&ldquo;{b.championTeamName}&rdquo;</span>}
+            <span class="plate-name">{managerName(b.champion)}</span>
+            <span class="plate-score">{fmt(b.score[0])}–{fmt(b.score[1])}</span>
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Where it stands</h2>
+      <a class="btn ghost" href="/standings">All-time standings</a>
+    </div>
+    <div class="grid cols-2">
+      <article class="card">
+        <p class="eyebrow">Most titles</p>
+        <div class="leader-row">
+          {mostTitles.photo && mostTitles.photoFull && (
+            <PhotoTrigger class="leader-avatar" src={mostTitles.photo} full={mostTitles.photoFull} alt={mostTitles.name} />
+          )}
+          <p class="big">{managerName(mostTitles.slug)}</p>
+        </div>
+        <StatBlock stats={[
+          { value: mostTitles.titles, label: "Titles", tone: "gold" },
+          { value: mostTitles.runnerUps, label: "Runner-up" },
+          { value: mostTitles.playoffAppearances, label: "Playoffs" },
+        ]} />
+      </article>
+      <article class="card">
+        <p class="eyebrow">Top five, all-time</p>
+        <ol class="mini">
+          {careers.slice(0, 5).map((c, i) => (
+            <li>
+              <span class="rank num">{String(i + 1).padStart(2, "0")}</span>
+              <a href={`/managers/${c.slug}`}>{c.name}</a>
+              <span class="num dim">{recordLine(c.wins, c.losses, c.ties)}</span>
+            </li>
+          ))}
+        </ol>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>MFFL Player Hall of Fame</h2>
+    </div>
+    <p class="hof-intro">
+      Six NFL careers whose statistical dominance shaped MFFL history — selected from
+      24 years of season-by-season Value Over Replacement data, not popularity or
+      highlight reels. Induction bar: 2+ league MVP seasons, or 4+ top-3 VOR finishes
+      across a career.
+    </p>
+    <div class="hof-gallery">
+      {hallOfFame.map((p) => {
+        const photo = playerPhoto(p.slug);
+        return (
+        <article class="bust-card">
+          <div class="alcove">
+            <span class="class-year">{p.classYear}</span>
+            {photo ? (
+              <img class="bust-photo" src={photo} alt={p.name} width="400" height="500" />
+            ) : (
+              <svg class="bust-svg" viewBox="0 0 200 220" aria-hidden="true">
+                <path class="bust-shape" d="M100,14 C122,14 138,32 138,56 C138,72 132,84 122,92 C148,100 168,116 176,140 C186,168 190,198 190,220 L10,220 C10,198 14,168 24,140 C32,116 52,100 78,92 C68,84 62,72 62,56 C62,32 78,14 100,14 Z"/>
+                <path class="bust-shine" d="M100,14 C115,14 128,24 133,38 C120,34 108,32 100,32 C92,32 80,34 67,38 C72,24 85,14 100,14 Z"/>
+              </svg>
+            )}
+            <div class="pedestal"></div>
+          </div>
+          <div class="plaque">
+            <div class="name">{p.name}</div>
+            <div class="meta"><span class="pos">{p.position}</span> · {p.span}</div>
+            <p class="citation">{p.citation}</p>
+            <div class="stats">
+              <div class="stat"><span class="v gold">{p.mvps}</span><span class="l">{p.mvps === 1 ? "MVP" : "MVPs"}</span></div>
+              <div class="stat"><span class="v">{p.top3s}</span><span class="l">Top&nbsp;3s</span></div>
+              <div class="stat"><span class="v">{p.peakVor.toFixed(1)}</span><span class="l">Peak VOR</span></div>
+            </div>
+          </div>
+        </article>
+        );
+      })}
+    </div>
+    <div class="hof-ballot">
+      <h3>On the Ballot — Not Yet Enshrined</h3>
+      <div class="hof-ballot-list">
+        {onTheBallot.map((b) => (
+          <div class="hof-ballot-row">
+            <span class="who">{b.name}</span>
+            <span class="why">{b.why}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+    <p class="hof-footnote">
+      2003's figures are a best-effort reconstruction — no Yahoo stats page or recap
+      email survives that season — rebuilt from Pro-Football-Reference box scores
+      under adjusted league-scoring baselines. Every other season is pulled directly
+      from the league's own archive.
+    </p>
+  </section>
+
+  <style>
+    .hero { padding: var(--gap-xl) 0 var(--gap-lg); }
+    .hero-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--gap-lg);
+    }
+    .hero-head-text { min-width: 0; }
+    .hero h1 { font-size: var(--step-4); margin-bottom: var(--gap-lg); }
+    .hero-crest { flex: none; width: 150px; height: auto; margin-top: 0.2rem; }
+    @media (max-width: 640px) {
+      .hero-crest { width: 76px; }
+    }
+    .reigning { display: grid; gap: 0.5rem; }
+    .champ-line { max-width: 520px; }
+    .champ-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    :global(.champ-avatar) {
+      flex: none;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 16px rgba(245, 196, 81, 0.25);
+    }
+    .champ-name {
+      font-family: var(--font-display);
+      font-size: var(--step-3);
+      text-transform: uppercase;
+      color: var(--orchid-bright);
+      margin: 0;
+    }
+    @media (max-width: 640px) {
+      :global(.champ-avatar) { width: 48px; height: 48px; }
+    }
+    .banners {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    /* engraved trophy plate: black frame, brushed-metal plaque, cut corners */
+    .banner {
+      display: block;
+      padding: 7px;
+      border-radius: 10px;
+      background: linear-gradient(155deg, #030303, #1e1e1e 45%, #030303);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, var(--shadow-card);
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .banner:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 0 2px var(--gold), 0 0 22px rgba(245, 196, 81, 0.35), var(--shadow-card);
+    }
+    .plate {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 0.15rem;
+      min-height: 7.75rem;
+      padding: 0.9rem 0.85rem 0.7rem;
+      border-radius: 4px;
+      text-align: center;
+      background:
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0px, rgba(255, 255, 255, 0.16) 1px, transparent 1px, transparent 3px),
+        linear-gradient(150deg, #d9d9d9 0%, #f4f4f4 22%, #b7b7b7 48%, #efefef 72%, #cbcbcb 100%);
+    }
+    .corner {
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      background: #0a0a0a;
+    }
+    .corner.tl { top: 0; left: 0; border-bottom-right-radius: 13px; }
+    .corner.tr { top: 0; right: 0; border-bottom-left-radius: 13px; }
+    .corner.bl { bottom: 0; left: 0; border-top-right-radius: 13px; }
+    .corner.br { bottom: 0; right: 0; border-top-left-radius: 13px; }
+    .plate-year {
+      font-family: var(--font-plate);
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: 0.05em;
+      line-height: 1.1;
+      color: #181818;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+    .plate-team {
+      font-family: var(--font-plate-body);
+      font-style: italic;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      line-height: 1.25;
+      color: #333333;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+      margin-top: 0.05rem;
+    }
+    .plate-name {
+      font-family: var(--font-plate-body);
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1.25;
+      color: #262626;
+      margin-top: 0.2rem;
+    }
+    .plate-score {
+      font-family: var(--font-plate-body);
+      font-style: italic;
+      font-size: 0.75rem;
+      color: #4d4d4d;
+      margin-top: 0.1rem;
+    }
+    .big { font-family: var(--font-display); font-size: var(--step-2); text-transform: uppercase; margin: 0; color: var(--text); }
+    .leader-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    :global(.leader-avatar) {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--orchid-dim);
+    }
+    .mini { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+    .mini li { display: grid; grid-template-columns: 2rem 1fr auto; gap: 0.75rem; align-items: baseline; font-size: 0.9375rem; }
+    .rank { color: var(--orchid); font-weight: 700; }
+  
+    /* --- MFFL Player Hall of Fame --- */
+    .hof-intro {
+      max-width: 62ch;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin: -0.5rem 0 1.5rem;
+    }
+    .hof-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    @media (max-width: 880px) { .hof-gallery { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .hof-gallery { grid-template-columns: 1fr; } }
+    .bust-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--line-soft);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, var(--shadow-card);
+    }
+    .alcove {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      background:
+        radial-gradient(120% 90% at 50% 8%, rgba(241,216,166,0.22), transparent 55%),
+        linear-gradient(180deg, #241533 0%, #150B22 72%, #0F0818 100%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .alcove::before {
+      content: "";
+      position: absolute;
+      top: -10%;
+      left: 50%;
+      width: 46%;
+      height: 70%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(241,216,166,0.35), transparent 85%);
+      clip-path: polygon(38% 0%, 62% 0%, 100% 100%, 0% 100%);
+      opacity: 0.8;
+      transition: opacity 0.4s ease;
+    }
+    .bust-card:hover .alcove::before { opacity: 1; }
+    .bust-svg { position: relative; width: 58%; max-width: 168px; z-index: 1; }
+    .bust-svg .bust-shape { fill: url(#bronzeGrad); }
+    .bust-svg .bust-shine { fill: url(#bronzeSheen); opacity: 0.55; mix-blend-mode: screen; }
+    .bust-photo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 22%;
+      z-index: 0;
+    }
+    .class-year {
+      position: absolute;
+      top: 0.9rem;
+      left: 0.9rem;
+      z-index: 2;
+      font-family: var(--font-data);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--ground-deep);
+      background: var(--gold);
+      padding: 0.22rem 0.5rem;
+      border-radius: 999px;
+    }
+    .pedestal {
+      position: relative;
+      z-index: 1;
+      width: 74%;
+      height: 14%;
+      background: linear-gradient(180deg, var(--plinth) 0%, #0D1519 100%);
+      border-top: 1px solid var(--plinth-line);
+      border-radius: 3px 3px 0 0;
+    }
+    .plaque {
+      padding: 1.15rem 1.3rem 1.35rem;
+      border-top: 1px solid var(--line);
+      background: var(--surface-raised);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .plaque .name {
+      font-family: var(--font-plate);
+      font-weight: 700;
+      font-size: 1.28rem;
+      letter-spacing: 0.02em;
+      color: var(--bronze-shine);
+    }
+    .plaque .meta {
+      font-family: var(--font-data);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: -0.4rem;
+    }
+    .plaque .meta .pos { color: var(--lavender); }
+    .plaque .citation {
+      font-family: var(--font-plate-body);
+      font-style: italic;
+      font-size: 0.96rem;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .plaque .stats {
+      display: flex;
+      margin-top: 0.15rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface-sunk);
+    }
+    .plaque .stat {
+      flex: 1;
+      text-align: center;
+      padding: 0.55rem 0.25rem;
+      border-right: 1px solid var(--line-soft);
+    }
+    .plaque .stat:last-child { border-right: 0; }
+    .plaque .stat .v {
+      display: block;
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text);
+    }
+    .plaque .stat .v.gold { color: var(--gold); }
+    .plaque .stat .l {
+      display: block;
+      font-size: 0.58rem;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+    .hof-ballot {
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--line-soft);
+    }
+    .hof-ballot h3 {
+      font-family: var(--font-data);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+    .hof-ballot-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .hof-ballot-list { grid-template-columns: 1fr; } }
+    .hof-ballot-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1.1rem;
+      background: var(--surface);
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+    }
+    .hof-ballot-row .who {
+      font-family: var(--font-plate);
+      font-size: 1.02rem;
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .hof-ballot-row .why {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-align: right;
+      min-width: 0;
+    }
+    .hof-footnote {
+      margin: 2rem auto 0;
+      max-width: 62ch;
+      font-family: var(--font-plate-body);
+      font-style: italic;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+</style>
+</Base>

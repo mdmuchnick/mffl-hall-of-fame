@@ -1,0 +1,54 @@
+---
+/* The reference's signature element: big numeral, small caps label,
+   separated by hairlines. Used for career and season lines. */
+interface Stat { value: string | number; label: string; tone?: "gold" | "mint" | "coral" }
+interface Props { stats: Stat[] }
+const { stats } = Astro.props;
+---
+<div class="statblock">
+  {stats.map((s) => (
+    <div class="stat">
+      <span class={`v ${s.tone ?? ""}`}>{s.value}</span>
+      <span class="l">{s.label}</span>
+    </div>
+  ))}
+</div>
+<style>
+  .statblock {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 1.1rem 0.75rem;
+    border-right: 1px solid var(--line-soft);
+    text-align: center;
+  }
+  .stat:last-child { border-right: 0; }
+  .v {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 1.75rem;
+    line-height: 1;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .v.gold { color: var(--gold); }
+  .v.mint { color: var(--mint); }
+  .v.coral { color: var(--coral); }
+  .l {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+</style>

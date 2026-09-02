@@ -1,0 +1,295 @@
+---
+import Base from "../../layouts/Base.astro";
+import { hallOfFame } from "../../data/hallOfFame";
+---
+<Base title="Photo Uploads" description="Upload player photos for the MFFL Player Hall of Fame.">
+  <section class="admin">
+    <p class="eyebrow">Admin tool &middot; not linked from the main site</p>
+    <h1>Hall of Fame Photos</h1>
+    <p class="lede">
+      Pick a photo for each inductee below. It writes straight into
+      <code>web/public/players/</code> on your computer — no server, no upload
+      button that goes anywhere else. Once you're happy with what's here,
+      rebuild and redeploy the site as usual and the photos go live.
+    </p>
+    <p class="lede warn">
+      Requires Chrome or Edge (the underlying browser feature — the File
+      System Access API — isn't in Safari or Firefox yet). You'll grant folder
+      access once per visit to this page; it doesn't persist across reloads.
+    </p>
+
+    <div class="connect-row">
+      <button id="connect" class="btn">Connect players folder</button>
+      <span id="connect-status" class="status"></span>
+    </div>
+
+    <div id="grid" class="grid" aria-disabled="true">
+      {hallOfFame.map((p) => (
+        <article class="row" data-slug={p.slug} data-name={p.name}>
+          <div class="thumb-wrap">
+            <img class="thumb" alt="" hidden />
+            <div class="thumb-empty">No photo</div>
+          </div>
+          <div class="row-body">
+            <p class="name">{p.name}</p>
+            <p class="meta">{p.position} &middot; {p.span}</p>
+            <div class="row-actions">
+              <label class="btn ghost file-btn">
+                Choose photo
+                <input type="file" accept="image/*" class="file-input" disabled />
+              </label>
+              <button class="btn ghost danger remove-btn" disabled>Remove</button>
+            </div>
+            <p class="row-status" role="status"></p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <style>
+    .admin { padding: var(--gap-xl) 0 var(--gap-lg); max-width: 68ch; }
+    .eyebrow {
+      font-family: var(--font-data);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 0 0 0.75rem;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: var(--step-3);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .lede { color: var(--text-muted); line-height: 1.65; margin: 0 0 0.75rem; }
+    .lede code {
+      font-family: var(--font-data);
+      background: var(--surface-sunk);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.05rem 0.35rem;
+      font-size: 0.9em;
+    }
+    .lede.warn { color: var(--lavender); }
+
+    .connect-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .btn {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      padding: 0.65rem 1.3rem;
+      border-radius: var(--radius-pill);
+      background: var(--orchid);
+      color: #fff;
+    }
+    .btn:hover { background: var(--orchid-bright); }
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid var(--line-bright);
+      color: var(--text);
+      padding: 0.5rem 1.1rem;
+      font-size: 0.85rem;
+    }
+    .btn.ghost:hover { border-color: var(--orchid); }
+    .btn.danger { color: var(--coral); border-color: var(--coral); }
+    .btn:disabled, .btn.ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+    .status { font-size: 0.875rem; color: var(--text-dim); }
+    .status.ok { color: var(--mint); }
+    .status.err { color: var(--coral); }
+
+    #grid[aria-disabled="true"] { opacity: 0.55; }
+
+    .grid { display: grid; gap: 1rem; }
+    .row {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--line-soft);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+    .thumb-wrap {
+      position: relative;
+      flex: none;
+      width: 88px;
+      height: 110px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-sunk);
+      border: 1px solid var(--line);
+    }
+    .thumb { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6875rem;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 0.5rem;
+    }
+    .row-body { flex: 1; min-width: 0; }
+    .name { font-family: var(--font-plate); font-size: 1.05rem; margin: 0; color: var(--text); }
+    .meta {
+      font-family: var(--font-data);
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 0.15rem 0 0.75rem;
+    }
+    .row-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+    .file-btn { position: relative; overflow: hidden; }
+    .file-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+    }
+    .row-status { font-size: 0.8125rem; color: var(--text-dim); margin: 0.5rem 0 0; min-height: 1.2em; }
+    .row-status.ok { color: var(--mint); }
+    .row-status.err { color: var(--coral); }
+  </style>
+
+  <script>
+    // Writes chosen photos straight to disk via the File System Access API.
+    // No network request, no server — the browser's own folder-write
+    // permission is the only thing gating this. Chrome/Edge only.
+    const EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+    let dirHandle: any = null;
+
+    const connectBtn = document.getElementById("connect") as HTMLButtonElement;
+    const connectStatus = document.getElementById("connect-status")!;
+    const grid = document.getElementById("grid")!;
+
+    function extFromFile(file: File): string {
+      const fromName = file.name.split(".").pop()?.toLowerCase();
+      if (fromName && EXTENSIONS.includes(fromName)) return fromName === "jpeg" ? "jpg" : fromName;
+      if (file.type === "image/png") return "png";
+      if (file.type === "image/webp") return "webp";
+      return "jpg";
+    }
+
+    async function findExistingFile(slug: string): Promise<{ handle: any; name: string } | null> {
+      for (const ext of EXTENSIONS) {
+        const name = `${slug}.${ext}`;
+        try {
+          const handle = await dirHandle.getFileHandle(name);
+          return { handle, name };
+        } catch {
+          // not this extension, keep looking
+        }
+      }
+      return null;
+    }
+
+    async function refreshRow(row: HTMLElement) {
+      const slug = row.dataset.slug!;
+      const img = row.querySelector(".thumb") as HTMLImageElement;
+      const empty = row.querySelector(".thumb-empty") as HTMLElement;
+      const removeBtn = row.querySelector(".remove-btn") as HTMLButtonElement;
+      const existing = await findExistingFile(slug);
+      if (existing) {
+        const file = await existing.handle.getFile();
+        img.src = URL.createObjectURL(file);
+        img.hidden = false;
+        empty.hidden = true;
+        removeBtn.disabled = false;
+      } else {
+        img.hidden = true;
+        empty.hidden = false;
+        removeBtn.disabled = true;
+      }
+    }
+
+    function setRowStatus(row: HTMLElement, text: string, kind: "ok" | "err" | "" = "") {
+      const el = row.querySelector(".row-status") as HTMLElement;
+      el.textContent = text;
+      el.className = "row-status" + (kind ? ` ${kind}` : "");
+    }
+
+    connectBtn.addEventListener("click", async () => {
+      if (!("showDirectoryPicker" in window)) {
+        connectStatus.textContent = "Your browser doesn't support this — use Chrome or Edge.";
+        connectStatus.className = "status err";
+        return;
+      }
+      try {
+        dirHandle = await (window as any).showDirectoryPicker({
+          id: "mffl-hof-players",
+          mode: "readwrite",
+          startIn: "documents",
+        });
+        connectStatus.textContent = `Connected: ${dirHandle.name}/`;
+        connectStatus.className = "status ok";
+        grid.setAttribute("aria-disabled", "false");
+        for (const input of grid.querySelectorAll<HTMLInputElement>(".file-input")) input.disabled = false;
+        for (const row of grid.querySelectorAll<HTMLElement>(".row")) await refreshRow(row);
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          connectStatus.textContent = "Couldn't connect to that folder.";
+          connectStatus.className = "status err";
+        }
+      }
+    });
+
+    for (const row of grid.querySelectorAll<HTMLElement>(".row")) {
+      const slug = row.dataset.slug!;
+      const fileInput = row.querySelector(".file-input") as HTMLInputElement;
+      const removeBtn = row.querySelector(".remove-btn") as HTMLButtonElement;
+
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        fileInput.value = "";
+        if (!file || !dirHandle) return;
+        setRowStatus(row, "Saving…");
+        try {
+          // Clear out any stale file under a different extension first,
+          // so a slug never ends up with two photos on disk.
+          const existing = await findExistingFile(slug);
+          if (existing) {
+            try { await dirHandle.removeEntry(existing.name); } catch {}
+          }
+          const ext = extFromFile(file);
+          const handle = await dirHandle.getFileHandle(`${slug}.${ext}`, { create: true });
+          const writable = await handle.createWritable();
+          await writable.write(file);
+          await writable.close();
+          await refreshRow(row);
+          setRowStatus(row, "Saved. Rebuild & deploy to publish.", "ok");
+        } catch (err: any) {
+          setRowStatus(row, `Couldn't save that file: ${err?.message || err?.name || "unknown error"}`, "err");
+        }
+      });
+
+      removeBtn.addEventListener("click", async () => {
+        if (!dirHandle) return;
+        const existing = await findExistingFile(slug);
+        if (!existing) return;
+        try {
+          await dirHandle.removeEntry(existing.name);
+          await refreshRow(row);
+          setRowStatus(row, "Removed. Rebuild & deploy to publish.", "ok");
+        } catch {
+          setRowStatus(row, "Couldn't remove that file.", "err");
+        }
+      });
+    }
+  </script>
+</Base>

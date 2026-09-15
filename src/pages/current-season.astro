@@ -1,0 +1,92 @@
+---
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import StatBlock from "../components/StatBlock.astro";
+import { currentSeason, currentStandings, currentWeeks, managerName, fmt, recordLine } from "../data/currentSeason";
+
+const standings = currentStandings();
+const weeks = currentWeeks();
+const leader = standings[0];
+const topScorerWeek1 = [...currentSeason.matchups].sort((a, b) =>
+  Math.max(b.homeScore, b.awayScore) - Math.max(a.homeScore, a.awayScore)
+)[0];
+const topScore = topScorerWeek1
+  ? Math.max(topScorerWeek1.homeScore, topScorerWeek1.awayScore)
+  : 0;
+const topScorer = topScorerWeek1
+  ? topScorerWeek1.homeScore >= topScorerWeek1.awayScore
+    ? topScorerWeek1.home
+    : topScorerWeek1.away
+  : "";
+
+const formatDate = (iso: string) =>
+  new Date(iso + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+---
+<Base title={`${currentSeason.year} Season`}>
+  <PageHeader
+    eyebrow={`${currentSeason.teamCount} teams · Week ${currentSeason.weeksPlayed} in progress`}
+    title={`${currentSeason.year}`}
+    lede={`Live standings and results, updated through Week ${currentSeason.weeksPlayed}. Last updated ${formatDate(currentSeason.lastUpdated)}.`}
+  />
+
+  <StatBlock stats={[
+    { value: managerName(leader.manager), label: "Current leader", tone: "gold" },
+    { value: recordLine(leader.wins, leader.losses, leader.ties), label: "Leader's record" },
+    { value: fmt(topScore), label: "Top score so far" },
+    { value: currentSeason.weeksPlayed, label: "Weeks played" },
+  ]} />
+
+  <section class="section">
+    <div class="section-head"><h2>Standings</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Manager</th><th>Team</th><th class="n">Record</th><th class="n">Points for</th><th class="n">Points against</th></tr>
+        </thead>
+        <tbody>
+          {standings.map((t) => (
+            <tr>
+              <td class="n dim">{t.rank}</td>
+              <td class="name"><a href={`/managers/${t.manager}`}>{managerName(t.manager)}</a></td>
+              <td>{t.teamName}</td>
+              <td class="n">{recordLine(t.wins, t.losses, t.ties)}</td>
+              <td class="n">{fmt(t.pointsFor)}</td>
+              <td class="n">{fmt(t.pointsAgainst)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="empty small">Seeding, playoff bracket, MVP race and the draft board will fill in as the season progresses.</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Week by Week</h2></div>
+    {weeks.map((w) => (
+      <div class="week">
+        <h3 class="wk">Week {w}</h3>
+        <div class="grid cols-3">
+          {currentSeason.matchups.filter((m) => m.week === w).map((m) => (
+            <div class="card game">
+              <p class={m.homeScore > m.awayScore ? "win" : "loss"}>
+                {managerName(m.home)} <span class="num">{fmt(m.homeScore)}</span>
+              </p>
+              <p class={m.awayScore > m.homeScore ? "win" : "loss"}>
+                {managerName(m.away)} <span class="num">{fmt(m.awayScore)}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+
+  <style>
+    .game p { margin: 0; display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9375rem; }
+    .game .win { color: var(--text); font-weight: 600; }
+    .game .loss { color: var(--text-dim); }
+    .week { margin-bottom: var(--gap-lg); }
+    .wk { font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem; }
+    .empty.small { margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); max-width: var(--measure); }
+  </style>
+</Base>

@@ -8,6 +8,7 @@ const { title, description = `${league.fullName} — every season since ${league
 const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 const nav = [
   { href: "/", label: "The Hall" },
+  { href: "/current-season", label: "2026 Live" },
   { href: "/seasons", label: "Seasons" },
   { href: "/standings", label: "All-Time" },
   { href: "/records", label: "Record Book" },

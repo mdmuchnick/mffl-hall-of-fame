@@ -3,6 +3,9 @@ import Base from "../../layouts/Base.astro";
 import PageHeader from "../../components/PageHeader.astro";
 import { seasons, managerName, fmt } from "../../data/league";
 import type { Season } from "../../data/league";
+import { currentSeason, currentStandings, recordLine } from "../../data/currentSeason";
+
+const liveLeader = currentStandings()[0];
 
 const championTeamName = (s: Season) =>
   s.teams.find((t) => t.manager === s.champion)?.teamName ?? "";
@@ -12,6 +15,23 @@ const mvpOwnerTeamName = (s: Season) =>
 <Base title="Seasons">
   <PageHeader eyebrow="The archive" title="Seasons" lede="One page per year. Final standings, every week's scores, the bracket, and the draft board where Yahoo still has one." />
   <ul class="list">
+    <li>
+      <a href="/current-season">
+        <span class="yr num">{currentSeason.year}</span>
+        <span class="body">
+          <span class="champ">
+            {managerName(liveLeader.manager)}
+            <span class="team">&ldquo;{liveLeader.teamName}&rdquo;</span>
+          </span>
+          <span class="sub dim">
+            leads at {recordLine(liveLeader.wins, liveLeader.losses, liveLeader.ties)} · {currentSeason.teamCount} teams · Week {currentSeason.weeksPlayed} in progress
+          </span>
+        </span>
+        <span class="pills">
+          <span class="pill live">Live</span>
+        </span>
+      </a>
+    </li>
     {seasons.map((s) => (
       <li>
         <a href={`/seasons/${s.year}`}>
@@ -74,6 +94,7 @@ const mvpOwnerTeamName = (s: Season) =>
     }
     .pills { display: grid; gap: 0.35rem; justify-items: end; }
     .pill.mvp { background: var(--surface-raised); border: 1px solid var(--orchid); color: var(--orchid); }
+    .pill.live { background: var(--orchid); border: 1px solid var(--orchid); color: var(--ground-deep); }
     @media (max-width: 560px) {
       .list a { grid-template-columns: 3.5rem 1fr; }
       .list .pill, .list .pills { display: none; }

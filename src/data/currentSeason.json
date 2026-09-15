@@ -1,0 +1,28 @@
+{
+  "year": 2026,
+  "teamCount": 12,
+  "weeksPlayed": 1,
+  "lastUpdated": "2026-09-15",
+  "teams": [
+    { "manager": "marc-muchnick", "teamName": "You're My Boy Blue!", "wins": 0, "losses": 1, "ties": 0, "pointsFor": 105.42, "pointsAgainst": 132.84 },
+    { "manager": "jeff-ready", "teamName": "DolFan Madness", "wins": 0, "losses": 1, "ties": 0, "pointsFor": 108.76, "pointsAgainst": 132.56 },
+    { "manager": "andrew-briscoe", "teamName": "Finding Nico", "wins": 1, "losses": 0, "ties": 0, "pointsFor": 125.12, "pointsAgainst": 102.40 },
+    { "manager": "will-briscoe", "teamName": "King Will", "wins": 0, "losses": 1, "ties": 0, "pointsFor": 112.06, "pointsAgainst": 138.86 },
+    { "manager": "ryan-muchnick", "teamName": "Puka's Paradise", "wins": 1, "losses": 0, "ties": 0, "pointsFor": 138.86, "pointsAgainst": 112.06 },
+    { "manager": "steve-king", "teamName": "Tenacious D", "wins": 1, "losses": 0, "ties": 0, "pointsFor": 132.84, "pointsAgainst": 105.42 },
+    { "manager": "scott-zide", "teamName": "The Skeeters", "wins": 0, "losses": 1, "ties": 0, "pointsFor": 138.34, "pointsAgainst": 165.06 },
+    { "manager": "andrew-king", "teamName": "OJ Might've Done It", "wins": 1, "losses": 0, "ties": 0, "pointsFor": 132.56, "pointsAgainst": 108.76 },
+    { "manager": "greg-stiefvater", "teamName": "TheDudeAbides", "wins": 1, "losses": 0, "ties": 0, "pointsFor": 120.12, "pointsAgainst": 118.26 },
+    { "manager": "jack-muchnick", "teamName": "Breece's Pieces", "wins": 0, "losses": 1, "ties": 0, "pointsFor": 118.26, "pointsAgainst": 120.12 },
+    { "manager": "loren-muchnick", "teamName": "Give Em' The Beans!", "wins": 0, "losses": 1, "ties": 0, "pointsFor": 102.40, "pointsAgainst": 125.12 },
+    { "manager": "john-briscoe", "teamName": "Sunday's Best", "wins": 1, "losses": 0, "ties": 0, "pointsFor": 165.06, "pointsAgainst": 138.34 }
+  ],
+  "matchups": [
+    { "week": 1, "home": "marc-muchnick", "away": "steve-king", "homeScore": 105.42, "awayScore": 132.84, "playoff": false },
+    { "week": 1, "home": "jack-muchnick", "away": "greg-stiefvater", "homeScore": 118.26, "awayScore": 120.12, "playoff": false },
+    { "week": 1, "home": "jeff-ready", "away": "andrew-king", "homeScore": 108.76, "awayScore": 132.56, "playoff": false },
+    { "week": 1, "home": "andrew-briscoe", "away": "loren-muchnick", "homeScore": 125.12, "awayScore": 102.40, "playoff": false },
+    { "week": 1, "home": "will-briscoe", "away": "ryan-muchnick", "homeScore": 112.06, "awayScore": 138.86, "playoff": false },
+    { "week": 1, "home": "john-briscoe", "away": "scott-zide", "homeScore": 165.06, "awayScore": 138.34, "playoff": false }
+  ]
+}

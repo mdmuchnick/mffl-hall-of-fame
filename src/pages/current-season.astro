@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import PageHeader from "../components/PageHeader.astro";
 import StatBlock from "../components/StatBlock.astro";
 import { currentSeason, currentStandings, currentWeeks, managerName, fmt, recordLine } from "../data/currentSeason";
+import { recapForWeek } from "../data/weeklyRecaps";
 
 const standings = currentStandings();
 const weeks = currentWeeks();
@@ -64,7 +65,12 @@ const formatDate = (iso: string) =>
     <div class="section-head"><h2>Week by Week</h2></div>
     {weeks.map((w) => (
       <div class="week">
-        <h3 class="wk">Week {w}</h3>
+        <div class="wk-head">
+          <h3 class="wk">Week {w}</h3>
+          {recapForWeek(w) && (
+            <a class="recap-link" href={`/recaps/${w}`}>Read the Week {w} Recap &rarr;</a>
+          )}
+        </div>
         <div class="grid cols-3">
           {currentSeason.matchups.filter((m) => m.week === w).map((m) => (
             <div class="card game">
@@ -86,7 +92,10 @@ const formatDate = (iso: string) =>
     .game .win { color: var(--text); font-weight: 600; }
     .game .loss { color: var(--text-dim); }
     .week { margin-bottom: var(--gap-lg); }
-    .wk { font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem; }
+    .wk-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .wk { font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); margin: 0; }
+    .recap-link { font-size: 0.8125rem; font-weight: 600; color: var(--orchid); text-decoration: none; }
+    .recap-link:hover { color: var(--orchid-bright); }
     .empty.small { margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); max-width: var(--measure); }
   </style>
 </Base>

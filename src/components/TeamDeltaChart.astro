@@ -1,0 +1,97 @@
+---
+/**
+ * Diverging bar chart: each team's actual score vs. its pre-game
+ * projection for one week. Bars grow from a zero baseline - right
+ * (mint) for teams that beat their number, left (coral) for teams that
+ * missed it. Every bar carries a direct label (team name + signed
+ * delta) so identity never depends on color alone.
+ */
+interface Row { manager: string; teamName: string; actual: number; proj: number }
+interface Props { teams: Row[] }
+const { teams } = Astro.props;
+
+const withDelta = teams
+  .map((t) => ({ ...t, delta: Math.round((t.actual - t.proj) * 100) / 100 }))
+  .sort((a, b) => b.delta - a.delta);
+
+const maxAbs = Math.max(...withDelta.map((t) => Math.abs(t.delta)));
+const pct = (d: number) => (Math.abs(d) / maxAbs) * 50; // half-track in each direction
+---
+<div class="delta-chart">
+  <div class="legend">
+    <span class="key"><span class="swatch pos"></span>Beat projection</span>
+    <span class="key"><span class="swatch neg"></span>Missed projection</span>
+  </div>
+  <div class="rows">
+    {withDelta.map((t) => (
+      <div class="row">
+        <a class="team" href={`/managers/${t.manager}`}>{t.teamName}</a>
+        <div class="track">
+          <span class="zero"></span>
+          <span
+            class={`bar ${t.delta >= 0 ? "pos" : "neg"}`}
+            style={`width:${pct(t.delta)}%`}
+          ></span>
+        </div>
+        <span class={`delta ${t.delta >= 0 ? "pos" : "neg"}`}>
+          {t.delta >= 0 ? "+" : ""}{t.delta.toFixed(2)}
+        </span>
+      </div>
+    ))}
+  </div>
+</div>
+<style>
+  .delta-chart { margin-top: 0.5rem; }
+  .legend { display: flex; gap: 1.25rem; margin-bottom: 0.9rem; font-size: 0.75rem; color: var(--text-muted); }
+  .key { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .swatch.pos { background: var(--mint); }
+  .swatch.neg { background: var(--coral); }
+  .rows { display: grid; gap: 2px; }
+  .row {
+    display: grid;
+    grid-template-columns: 9.5rem 1fr 4.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0;
+  }
+  .team {
+    font-size: 0.8125rem;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .team:hover { color: var(--orchid-bright); }
+  .track { position: relative; height: 18px; }
+  .zero {
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    bottom: -3px;
+    width: 1px;
+    background: var(--line-bright);
+  }
+  .bar {
+    position: absolute;
+    top: 0;
+    height: 18px;
+    display: block;
+  }
+  .bar.pos { left: 50%; background: var(--mint); border-radius: 0 4px 4px 0; }
+  .bar.neg { right: 50%; background: var(--coral); border-radius: 4px 0 0 4px; }
+  .delta {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-align: right;
+    color: var(--text);
+  }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 6.5rem 1fr 3.75rem; gap: 0.5rem; }
+    .team { font-size: 0.75rem; }
+    .delta { font-size: 0.75rem; }
+  }
+</style>

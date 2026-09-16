@@ -1,0 +1,127 @@
+---
+/**
+ * Dumbbell chart: each player's pre-game projection (muted dot) vs.
+ * actual fantasy points (colored dot), connected by a thin line.
+ * Sorted best-to-worst delta. Color on the "actual" dot/line signals
+ * beat-projection (mint) vs missed-projection (coral); every mark is
+ * also direct-labeled with its value, so color is never the only cue.
+ */
+import { managerName } from "../data/league";
+import type { RecapHighlight } from "../data/weeklyRecaps";
+
+interface Props { players: RecapHighlight[] }
+const { players } = Astro.props;
+
+const sorted = [...players].sort(
+  (a, b) => (b.actual - b.proj) - (a.actual - a.proj)
+);
+const maxVal = Math.max(...sorted.flatMap((p) => [p.proj, p.actual])) * 1.08;
+const pct = (v: number) => (v / maxVal) * 100;
+
+const tagLabel: Record<RecapHighlight["tag"], string> = {
+  steal: "Draft steal",
+  stud: "Big performance",
+  bust: "Draft regret",
+};
+---
+<div class="dumbbell-chart">
+  <div class="legend">
+    <span class="key"><span class="swatch proj"></span>Projected</span>
+    <span class="key"><span class="swatch pos"></span>Beat projection</span>
+    <span class="key"><span class="swatch neg"></span>Missed projection</span>
+  </div>
+  <div class="rows">
+    {sorted.map((p) => {
+      const beat = p.actual >= p.proj;
+      const projPct = pct(p.proj);
+      const actualPct = pct(p.actual);
+      const left = Math.min(projPct, actualPct);
+      const width = Math.abs(actualPct - projPct);
+      return (
+        <div class="row">
+          <div class="who">
+            <a class="player" href={`/managers/${p.manager}`}>{p.player}</a>
+            <span class="meta">
+              {p.nflTeam} · {p.fantasyTeam} ({managerName(p.manager)})
+              {p.round && <span class="pill-round">R{p.round}</span>}
+            </span>
+          </div>
+          <div class="track">
+            <span class="connector" style={`left:${left}%;width:${width}%`}></span>
+            <span class="dot proj" style={`left:${projPct}%`}></span>
+            <span class={`dot actual ${beat ? "pos" : "neg"}`} style={`left:${actualPct}%`}></span>
+          </div>
+          <div class="values">
+            <span class="v proj-v">{p.proj.toFixed(2)} proj</span>
+            <span class={`v actual-v ${beat ? "pos" : "neg"}`}>{p.actual.toFixed(2)} actual</span>
+          </div>
+          <span class={`tag ${p.tag}`}>{tagLabel[p.tag]}</span>
+        </div>
+      );
+    })}
+  </div>
+</div>
+<style>
+  .dumbbell-chart { margin-top: 0.5rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1.1rem; font-size: 0.75rem; color: var(--text-muted); }
+  .key { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .swatch.proj { background: var(--text-dim); }
+  .swatch.pos { background: var(--mint); }
+  .swatch.neg { background: var(--coral); }
+  .rows { display: grid; gap: 0.9rem; }
+  .row {
+    display: grid;
+    grid-template-columns: 12rem 1fr 8.5rem 6.5rem;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .who { display: grid; gap: 0.1rem; min-width: 0; }
+  .player { font-size: 0.875rem; font-weight: 600; color: var(--text); text-decoration: none; }
+  .player:hover { color: var(--orchid-bright); }
+  .meta { font-size: 0.6875rem; color: var(--text-dim); display: flex; align-items: center; gap: 0.4rem; }
+  .pill-round {
+    font-family: var(--font-data);
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: var(--orchid);
+    border: 1px solid var(--orchid-dim);
+    border-radius: var(--radius-pill);
+    padding: 0.05rem 0.4rem;
+  }
+  .track { position: relative; height: 12px; }
+  .connector { position: absolute; top: 5px; height: 2px; background: var(--line-bright); }
+  .dot {
+    position: absolute;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  .dot.proj { background: var(--text-dim); }
+  .dot.actual.pos { background: var(--mint); }
+  .dot.actual.neg { background: var(--coral); }
+  .values { display: grid; gap: 0.1rem; font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 0.75rem; }
+  .v.proj-v { color: var(--text-dim); }
+  .v.actual-v { color: var(--text); font-weight: 700; }
+  .tag {
+    justify-self: end;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+  }
+  .tag.steal { background: var(--orchid-wash); border: 1px solid var(--orchid); color: var(--orchid); }
+  .tag.stud { background: rgba(88, 214, 168, 0.12); border: 1px solid var(--mint); color: var(--mint); }
+  .tag.bust { background: rgba(255, 107, 122, 0.12); border: 1px solid var(--coral); color: var(--coral); }
+  @media (max-width: 720px) {
+    .row { grid-template-columns: 1fr; gap: 0.4rem; }
+    .tag { justify-self: start; }
+    .track { margin: 0.2rem 0; }
+  }
+</style>

@@ -1,0 +1,107 @@
+---
+import Base from "../../layouts/Base.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import StatBlock from "../../components/StatBlock.astro";
+import TeamDeltaChart from "../../components/TeamDeltaChart.astro";
+import PlayerHighlightChart from "../../components/PlayerHighlightChart.astro";
+import { currentSeason } from "../../data/currentSeason";
+import { weeklyRecaps } from "../../data/weeklyRecaps";
+import { managerName, fmt } from "../../data/league";
+
+export function getStaticPaths() {
+  return weeklyRecaps.map((r) => ({ params: { week: String(r.week) }, props: { recap: r } }));
+}
+const { recap } = Astro.props;
+
+const weekMatchups = currentSeason.matchups.filter((m) => m.week === recap.week);
+const teamByManager = new Map(currentSeason.teams.map((t) => [t.manager, t]));
+
+// Build the delta-chart rows: every team that played this week, actual vs.
+// that game's pre-game projection. currentSeason.json doesn't carry a
+// separate "proj" field on matchups, so this page's own data stays
+// self-contained via the recap's highlights + a small local proj map
+// keyed off the same week - kept here rather than bloating currentSeason.json
+// with a field only this page uses.
+const teamProjByManager: Record<number, Record<string, number>> = {
+  1: {
+    "marc-muchnick": 104.70, "steve-king": 120.00,
+    "jack-muchnick": 119.39, "greg-stiefvater": 118.45,
+    "jeff-ready": 104.78, "andrew-king": 112.37,
+    "andrew-briscoe": 118.87, "loren-muchnick": 115.84,
+    "will-briscoe": 120.00, "ryan-muchnick": 113.12,
+    "john-briscoe": 123.99, "scott-zide": 122.78,
+  },
+};
+const projFor = (manager: string) => teamProjByManager[recap.week]?.[manager];
+
+const deltaRows = currentSeason.teams
+  .filter((t) => projFor(t.manager) !== undefined)
+  .map((t) => ({ manager: t.manager, teamName: t.teamName, actual: t.pointsFor, proj: projFor(t.manager)! }));
+// Note: teams.pointsFor is season-to-date; for week 1 it equals the week-1
+// score. Once week 2 exists, this page will need each week's own score,
+// not the running total - see the weekly-recap skill's step 5 when
+// extending past week 1.
+
+const scores = weekMatchups.flatMap((m) => [
+  { manager: m.home, score: m.homeScore },
+  { manager: m.away, score: m.awayScore },
+]);
+const top = scores.reduce((a, b) => (b.score > a.score ? b : a));
+const low = scores.reduce((a, b) => (b.score < a.score ? b : a));
+const margins = weekMatchups.map((m) => ({
+  m,
+  margin: Math.abs(m.homeScore - m.awayScore),
+  winner: m.homeScore > m.awayScore ? m.home : m.away,
+  loser: m.homeScore > m.awayScore ? m.away : m.home,
+}));
+const biggestBlowout = margins.reduce((a, b) => (b.margin > a.margin ? b : a));
+const closest = margins.reduce((a, b) => (b.margin < a.margin ? b : a));
+---
+<Base title={`Week ${recap.week} Recap`}>
+  <PageHeader
+    eyebrow={`${currentSeason.year} season · Week ${recap.week}`}
+    title="The Weekly Recap"
+    lede="Marc's own take on the week that was — who balled out, who bombed, and whose draft is already looking like a steal or a regret."
+  />
+
+  <StatBlock stats={[
+    { value: fmt(top.score), label: `${managerName(top.manager)} — top score`, tone: "mint" },
+    { value: fmt(low.score), label: `${managerName(low.manager)} — low score`, tone: "coral" },
+    { value: `+${fmt(biggestBlowout.margin)}`, label: `${managerName(biggestBlowout.winner)} blowout`, tone: "gold" },
+    { value: fmt(closest.margin), label: `${managerName(closest.winner)}’s nail-biter` },
+  ]} />
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Score vs. Projection</h2>
+      <p class="dim sub">Every team's Week {recap.week} score against Yahoo's pre-game number.</p>
+    </div>
+    <TeamDeltaChart teams={deltaRows} />
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Steals, Studs &amp; Regrets</h2>
+      <p class="dim sub">The players this week's recap is actually about — projected vs. actual.</p>
+    </div>
+    <PlayerHighlightChart players={recap.highlights} />
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>The Recap</h2></div>
+    <div class="recap">
+      {recap.paragraphs.map((p) => <p>{p}</p>)}
+    </div>
+  </section>
+
+  <style>
+    .sub { margin: 0.2rem 0 1rem; font-size: 0.8125rem; }
+    .recap {
+      font-family: var(--font-plate-body);
+      font-size: 1.0625rem;
+      line-height: 1.7;
+    }
+    .recap p { margin: 0 0 1rem; max-width: none; color: var(--text); }
+    .recap p:last-child { margin-bottom: 0; }
+  </style>
+</Base>

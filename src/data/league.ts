@@ -7,6 +7,12 @@
  */
 import raw from "./fixtures.json";
 import { managerPhoto, managerPhotoFull } from "./managerPhotos";
+// The in-progress season, used ONLY by currentWinStreak() below. An "active"
+// streak is by definition a statement about right now, so it has to see the
+// live games; every other record on this page stays 2002-2025. This imports
+// the raw JSON, not currentSeason.ts, which imports FROM this file - going
+// through the .ts would be a circular import.
+import liveRaw from "./currentSeason.json";
 
 export interface Manager {
   slug: string;
@@ -456,31 +462,49 @@ function longestWinStreak(): { manager: string; length: number; year: number; fr
 
 /** The win streak each manager is carrying as of the most recent completed game. */
 function currentWinStreak(): { manager: string; length: number; from: string } | null {
-  const chronological = [...seasons].sort((a, b) => a.year - b.year);
-  const running = new Map<string, { len: number; startYear: number; startWeek: number }>();
+  // Two rules make this record mean what it says:
+  //
+  // 1. It must run through the LIVE season. Reading only the 2002-2025 archive
+  //    reports whatever streak was alive when the last archived season ended
+  //    and calls it "ongoing" forever - which is how this card spent the start
+  //    of 2026 crediting a 6-game streak to a manager who had since lost twice.
+  // 2. Only managers in the current season can hold an active streak. Without
+  //    this, a manager who left the league in 2004 mid-win-streak keeps an
+  //    "active" streak indefinitely, because nothing ever breaks it.
+  const activeManagers = new Set(liveRaw.teams.map((t) => t.manager));
 
-  for (const s of chronological) {
-    const ordered = [...s.matchups].sort((a, b) => a.week - b.week);
-    for (const m of ordered) {
-      const pairs: [string, boolean][] = [
-        [m.home, m.homeScore > m.awayScore],
-        [m.away, m.awayScore > m.homeScore],
-      ];
-      for (const [slug, won] of pairs) {
-        const cur = running.get(slug) ?? { len: 0, startYear: s.year, startWeek: m.week };
-        if (won) {
-          if (cur.len === 0) { cur.startYear = s.year; cur.startWeek = m.week; }
-          cur.len += 1;
-        } else {
-          cur.len = 0;
-        }
-        running.set(slug, cur);
+  const weeks: { year: number; week: number; home: string; away: string; homeScore: number; awayScore: number }[] = [];
+  for (const s of seasons) {
+    for (const m of s.matchups) {
+      weeks.push({ year: s.year, week: m.week, home: m.home, away: m.away, homeScore: m.homeScore, awayScore: m.awayScore });
+    }
+  }
+  for (const m of liveRaw.matchups) {
+    weeks.push({ year: liveRaw.year, week: m.week, home: m.home, away: m.away, homeScore: m.homeScore, awayScore: m.awayScore });
+  }
+  weeks.sort((a, b) => a.year - b.year || a.week - b.week);
+
+  const running = new Map<string, { len: number; startYear: number; startWeek: number }>();
+  for (const m of weeks) {
+    const pairs: [string, boolean][] = [
+      [m.home, m.homeScore > m.awayScore],
+      [m.away, m.awayScore > m.homeScore],
+    ];
+    for (const [slug, won] of pairs) {
+      const cur = running.get(slug) ?? { len: 0, startYear: m.year, startWeek: m.week };
+      if (won) {
+        if (cur.len === 0) { cur.startYear = m.year; cur.startWeek = m.week; }
+        cur.len += 1;
+      } else {
+        cur.len = 0;
       }
+      running.set(slug, cur);
     }
   }
 
   let best: { manager: string; length: number; from: string } | null = null;
   for (const [slug, v] of running) {
+    if (!activeManagers.has(slug)) continue;
     if (v.len > 0 && (!best || v.len > best.length)) {
       best = { manager: slug, length: v.len, from: `${v.startYear} week ${v.startWeek}` };
     }

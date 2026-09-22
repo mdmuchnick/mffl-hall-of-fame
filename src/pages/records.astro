@@ -4,6 +4,7 @@ import PageHeader from "../components/PageHeader.astro";
 import { recordBook } from "../data/league";
 import { careerPlayerRecords } from "../data/nflEraLeaders";
 import { nflSeasonRecords } from "../data/nflSeasonRecords";
+import { currentSeason } from "../data/currentSeason";
 const records = recordBook();
 const categoryOrder = [
   "Single-Game Extremes",
@@ -23,6 +24,12 @@ const careerPlayer = careerPlayerRecords();
     title="Record Book"
     lede="The best and worst things anyone has ever done in this league."
   />
+  <p class="rb-note rb-scope">
+    League records cover the 24 completed seasons, 2002&ndash;2025. The live
+    <a href="/current-season">{currentSeason.year} season</a> counts only toward
+    &ldquo;longest active win streak&rdquo; &mdash; a season still being played
+    can&rsquo;t settle a season or career record.
+  </p>
   {grouped.map((g) => (
     <section class="rb-section">
       <h2 class="rb-heading">{g.cat}</h2>
@@ -80,6 +87,7 @@ const careerPlayer = careerPlayerRecords();
     }
     .rb-section:first-of-type .rb-heading { margin-top: 0.5rem; }
     .rb-note { margin: -0.5rem 0 1rem; max-width: 60ch; font-size: 0.9375rem; color: var(--text-muted); }
+    .rb-scope { margin: 0 0 2rem; }
     .rb-note a { color: var(--text-dim); }
     .rb-note a:hover { color: var(--orchid-bright); }
     .rec { display: grid; gap: 0.35rem; align-content: start; }

@@ -31,16 +31,34 @@ const teamProjByManager: Record<number, Record<string, number>> = {
     "will-briscoe": 120.00, "ryan-muchnick": 113.12,
     "john-briscoe": 123.99, "scott-zide": 122.78,
   },
+  2: {
+    "marc-muchnick": 116.28, "jack-muchnick": 128.42,
+    "jeff-ready": 114.51, "loren-muchnick": 123.43,
+    "andrew-briscoe": 105.35, "john-briscoe": 125.83,
+    "will-briscoe": 118.66, "scott-zide": 123.43,
+    "andrew-king": 114.45, "steve-king": 121.70,
+    "ryan-muchnick": 98.51, "greg-stiefvater": 119.75,
+  },
 };
 const projFor = (manager: string) => teamProjByManager[recap.week]?.[manager];
 
+// This week's score per manager, read off this week's matchups. Do NOT use
+// teams.pointsFor here - that is the SEASON-TO-DATE total and only happened
+// to equal the weekly score while week 1 was the entire season.
+const weekScoreByManager = new Map<string, number>();
+for (const m of weekMatchups) {
+  weekScoreByManager.set(m.home, m.homeScore);
+  weekScoreByManager.set(m.away, m.awayScore);
+}
+
 const deltaRows = currentSeason.teams
-  .filter((t) => projFor(t.manager) !== undefined)
-  .map((t) => ({ manager: t.manager, teamName: t.teamName, actual: t.pointsFor, proj: projFor(t.manager)! }));
-// Note: teams.pointsFor is season-to-date; for week 1 it equals the week-1
-// score. Once week 2 exists, this page will need each week's own score,
-// not the running total - see the weekly-recap skill's step 5 when
-// extending past week 1.
+  .filter((t) => projFor(t.manager) !== undefined && weekScoreByManager.has(t.manager))
+  .map((t) => ({
+    manager: t.manager,
+    teamName: t.teamName,
+    actual: weekScoreByManager.get(t.manager)!,
+    proj: projFor(t.manager)!,
+  }));
 
 const scores = weekMatchups.flatMap((m) => [
   { manager: m.home, score: m.homeScore },

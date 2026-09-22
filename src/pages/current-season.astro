@@ -8,16 +8,16 @@ import { recapForWeek } from "../data/weeklyRecaps";
 const standings = currentStandings();
 const weeks = currentWeeks();
 const leader = standings[0];
-const topScorerWeek1 = [...currentSeason.matchups].sort((a, b) =>
+const topScoreMatchup = [...currentSeason.matchups].sort((a, b) =>
   Math.max(b.homeScore, b.awayScore) - Math.max(a.homeScore, a.awayScore)
 )[0];
-const topScore = topScorerWeek1
-  ? Math.max(topScorerWeek1.homeScore, topScorerWeek1.awayScore)
+const topScore = topScoreMatchup
+  ? Math.max(topScoreMatchup.homeScore, topScoreMatchup.awayScore)
   : 0;
-const topScorer = topScorerWeek1
-  ? topScorerWeek1.homeScore >= topScorerWeek1.awayScore
-    ? topScorerWeek1.home
-    : topScorerWeek1.away
+const topScorer = topScoreMatchup
+  ? topScoreMatchup.homeScore >= topScoreMatchup.awayScore
+    ? topScoreMatchup.home
+    : topScoreMatchup.away
   : "";
 
 const formatDate = (iso: string) =>
